@@ -1,0 +1,30 @@
+{"prompt": "Sugiere hardening inmediato."}
+{"prompt": "Eval\u00faa riesgo en red interna."}
+{"prompt": "Analiza comportamiento an\u00f3malo."}
+{"prompt": "Determina nivel de amenaza."}
+{"prompt": "Identifica punto de entrada."}
+{"prompt": "Describe un protocolo de contingencia."}
+{"prompt": "Detecta patrones sospechosos."}
+{"prompt": "Analiza correlaci\u00f3n de eventos."}
+{"prompt": "Identifica activos expuestos."}
+{"prompt": "Identifica anomal\u00edas en tr\u00e1fico."}
+{"prompt": "Monitorea indicadores cr\u00edticos."}
+{"prompt": "Proporciona diagn\u00f3stico de logs."}
+{"prompt": "Prop\u00f3n aislamiento de segmento."}
+{"prompt": "\u00bfQu\u00e9 acciones debo tomar ante una intrusi\u00f3n?"}
+{"prompt": "Verifica integridad de archivos."}
+{"prompt": "Sugiere medidas de contenci\u00f3n."}
+{"prompt": "Genera informe de estado."}
+{"prompt": "Revisa configuraci\u00f3n de firewall."}
+{"prompt": "Eval\u00faa efectividad de controles."}
+{"prompt": "Genera resumen ejecutivo."}
+{"prompt": "Recomienda acciones prioritarias."}
+{"prompt": "Recomienda respuesta a incidente."}
+{"prompt": "Verifica estado de backups."}
+{"prompt": "Eval\u00faa permisos de usuario."}
+{"prompt": "Analiza vector de ataque potencial."}
+{"prompt": "Eval\u00faa alcance de compromiso."}
+{"prompt": "Prioriza alertas de seguridad."}
+{"prompt": "Analiza el estado del sistema."}
+{"prompt": "Calcula impacto potencial."}
+{"prompt": "Prop\u00f3n plan de mitigaci\u00f3n."}

@@ -1,0 +1,74 @@
+project:
+  name: samaritan
+  version: 1.0.0
+  offline: true
+
+hardware:
+  max_ram_gib: 7.0
+  warn_ram_gib: 5.5
+  device: cpu
+  use_cuda: false
+  use_rocm: false
+
+model:
+  base_model: Qwen/Qwen2.5-0.5B-Instruct
+  max_seq_length: 512
+  lora:
+    r: 16
+    alpha: 32
+    dropout: 0.05
+    target_modules: ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
+    layers_to_transform: null  # null means all layers, or set int to train last N layers
+
+training:
+  sft:
+    per_device_train_batch_size: 1
+    gradient_accumulation_steps: 8
+    gradient_checkpointing: true
+    num_train_epochs: 1
+    learning_rate: 2e-4
+    warmup_ratio: 0.03
+    logging_steps: 10
+    save_steps: 100
+    fp32: true
+    seed: 42
+  dpo:
+    beta: 0.1
+    num_train_epochs: 1
+    per_device_train_batch_size: 1
+    gradient_accumulation_steps: 8
+    gradient_checkpointing: true
+    learning_rate: 5e-7
+    fp32: true
+    seed: 42
+
+ollama:
+  host: http://localhost:11434
+  generator_model: samaritan
+  judge_model: qwen2.5:3b  # must be >= generator size
+
+judge:
+  temperature: 0.0
+  seed: 1234
+  num_candidates: 4
+  candidate_temperature: 0.9
+  max_retries_json: 2
+  min_score_chosen: 6
+  min_score_diff: 2
+  calibration_good_count: 10
+  calibration_bad_count: 10
+
+data:
+  input_sft: data/dataset_sft.jsonl
+  input_dpo: data/dataset_dpo.jsonl
+  train_out: data/train.jsonl
+  eval_out: data/eval.jsonl
+  candidates: data/candidates.jsonl
+  dpo_out: data/dpo.jsonl
+  eval_prompts_count: 30
+
+paths:
+  output_dir: model/outputs
+  lora_adapter: model/lora_adapter
+  merged_model: model/merged
+  gguf_output: model/gguf
