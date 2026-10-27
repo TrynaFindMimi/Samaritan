@@ -64,12 +64,13 @@ def cmd_query(args):
     tui = SamaritanTUI()
     resp = agent.process(question)
     filtered = filter_output(resp)
-    tui.show(filtered)
+    tui.respond(filtered)
 
 
 def cmd_ask(args):
     from serving.ollama_client import generate
     from output.filter import filter_output
+    from ui.tui import SamaritanTUI
 
     question = args.question
     if not question:
@@ -77,40 +78,48 @@ def cmd_ask(args):
         print("Uso: python main.py ask \"tu pregunta aquí\"")
         sys.exit(1)
 
+    tui = SamaritanTUI()
     resp = generate([{"role": "user", "content": question}], model="samaritan")
     filtered = filter_output(resp)
-    print(filtered)
+    tui.respond(filtered)
 
 
 def main():
     if len(sys.argv) == 1:
-        print("ANALYZING")
-        print("SAMARITAN")
-        print("COMPLETE")
-        print()
-        sys.stdout.flush()
         from agent.agent import SamaritanAgent
         from output.filter import filter_output
+        from ui.tui import SamaritanTUI
+
+        tui = SamaritanTUI()
+        tui.boot()
         agent = SamaritanAgent()
         while True:
             try:
-                user_input = input()
-                if not user_input.strip():
+                user_input = input(f"{tui.prompt()}").strip()
+                if not user_input:
                     continue
-                if user_input.strip().lower() in ['exit', 'salir', 'quit', 'q']:
+                if user_input.lower() in ['exit', 'salir', 'quit', 'q']:
+                    print(f"{tui.bright_cyan}>{tui.reset} {tui.bone}TERMINATING{tui.reset}")
+                    print(f"{tui.bright_green}COMPLETE{tui.reset}")
+                    tui.cursor_show()
                     break
                 resp = agent.process(user_input)
                 filtered = filter_output(resp)
-                print(filtered)
-                print()
+                tui.respond(filtered)
                 sys.stdout.flush()
             except EOFError:
+                tui.cursor_show()
                 break
             except KeyboardInterrupt:
+                print()
+                print(f"{tui.bright_cyan}>{tui.reset} {tui.bone}SESSION INTERRUPTED{tui.reset}")
+                print(f"{tui.bright_green}COMPLETE{tui.reset}")
+                tui.cursor_show()
                 break
             except Exception as e:
-                print(f"ANOMALY DETECTED\n{e}\nCOMPLETE")
-                print()
+                err = f"ANOMALY DETECTED\nERROR: {e}\nCOMPLETE"
+                filtered_err = filter_output(err)
+                tui.respond(filtered_err)
                 sys.stdout.flush()
         return
 
