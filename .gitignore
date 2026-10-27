@@ -1,0 +1,60 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Models and weights (large files)
+*.gguf
+*.bin
+*.safetensors
+model/outputs/
+model/lora_adapter/
+model/merged/
+model/gguf/
+
+# Data outputs (generated)
+data/train.jsonl
+data/eval.jsonl
+data/candidates.jsonl
+data/dpo.jsonl
+
+# Ollama
+*.gguf
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/

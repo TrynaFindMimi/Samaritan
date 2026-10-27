@@ -1,59 +1,145 @@
-# SAMARITAN - Documentación
+# SAMARITAN
 
-## Estructura general
+Sistema de agente local offline con entrenamiento LoRA (SFT + DPO) sobre Qwen2.5-0.5B-Instruct, serving vía Ollama, y una interfaz TUI al estilo operativo. Todo corre localmente sin dependencias de APIs externas.
 
-El sistema está dividido en capas. Cada capa solo se comunica con la capa adyacente a través de interfaces definidas. Ninguna capa importa de una superior. Solo `serving/` conoce Ollama.
+## Arquitectura por capas
 
-### data/ (Capa de datos)
-- **¿Qué hace?** Genera, valida y versiona los datasets para entrenamiento.
-- **Funciones principales:** `build_datasets()` lee `dataset_sft.jsonl` y `dataset_dpo.jsonl`, filtra contenido no deseado (emojis, `!`, `¡`, código Python inválido), limpia el texto y genera `train.jsonl` y `eval.jsonl`.
-- **Validadores:** `validators.py` detecta emojis, signos de exclamación, bloques de código Python y valida con `ast.parse`. También limpia el texto.
+El sistema está dividido en capas con comunicación unidireccional. Cada capa tiene una responsabilidad única.
 
-### model/ (Capa de modelo)
-- **¿Qué hace?** Entrena el adaptador LoRA sobre `Qwen/Qwen2.5-0.5B-Instruct` con SFT, opcionalmente con DPO.
-- **Configuración:** LoRA `r=16`, `alpha=32`, `dropout=0.05`, módulos objetivo configurables, opción `layers_to_transform` para entrenar solo últimas N capas. `max_seq_length=512`, batch 1, gradient accumulation 8, gradient checkpointing, fp32, CPU.
-- **Funciones:** `train_sft()`, `train_dpo()`, `merge_adapter()`, `export_gguf()`.
-- **Nota:** En esta instalación se reutilizó un adaptador preexistente de `the-machine-v3/models/samaritan/`.
+| Capa | Directorio | Propósito | Archivos clave |
+|---|---|---|---|
+| **Datos** | `data/` | Generación, validación y limpieza de datasets para entrenamiento SFT y DPO. | `dataset.py`, `validators.py` |
+| **Modelo** | `model/` | Entrenamiento LoRA (SFT/DPO), fusión de adaptador y exportación a GGUF. | `train.py` |
+| **Serving** | `serving/` | Única capa que interactúa con Ollama. Generación, creación de modelos y descarga de VRAM. | `ollama_client.py`, `Modelfile`, `create_model.sh` |
+| **Juez (DPO)** | `judge/` | Generación automática de pares preferidos/rechazados con juez local sin anotación manual. | `dpo_builder.py`, `rules.py` |
+| **Agente** | `agent/` | Lógica del agente SAMARITAN (orquestación). | `agent.py` |
+| **Salida** | `output/` | Filtro obligatorio de post-procesado. Garantiza formato y cumplimiento de reglas. | `filter.py` |
+| **UI** | `ui/` | Interfaz TUI en modo operativo (texto palabra por palabra, estilo terminal). | `tui.py` |
+| **Utilidades** | Raíz | Configuración, chequeo de RAM, helpers comunes. | `config.yaml`, `utils.py` |
 
-### serving/ (Capa de serving)
-- **¿Qué hace?** Única capa que conoce Ollama. Expone la interfaz para generar respuestas y gestionar modelos.
-- **Funciones:** `generate(messages, model=None, options=None)` llama a `http://localhost:11434/api/chat`. `unload(model)` descarga el modelo de RAM. `create_model()` crea el modelo desde un Modelfile.
-- **Modelfile:** Define el system prompt de SAMARITAN, `temperature 0.3`, top_p, repeat_penalty. `create_model.sh` ejecuta `ollama create samaritan -f Modelfile`.
+### Detalle por capa
 
-### judge/ (Capa de juez offline)
-- **¿Qué hace?** Construye el dataset DPO automáticamente sin intervención manual, usando un modelo juez local.
-- **Etapas:**
-  1. **A) Generar candidatos:** Para cada prompt de `train.jsonl` genera 4 respuestas con el modelo `samaritan` (temp 0.9). Guarda en `candidates.jsonl` incrementalmente.
-  2. **B) Puntuar:** Usa un juez distinto (ej. `qwen2.5:3b`), temperatura 0, seed fija. Descarga el generador con `unload()` antes de cargar el juez. Prompt pide JSON estricto `{puntaje, motivo}` con reintentos.
-  3. **C) Reglas automáticas:** Aplican ajustes deterministas (descartar emojis/! , penalizar código inválido, requerir estado inicial en mayúsculas, exigir `AUTHORIZE? [Y/N]` en acciones destructivas, penalizar respuestas largas).
-  4. **D) Pares DPO:** Selecciona `chosen` (mayor puntaje) vs `rejected` (menor), descarta si diferencia < 2 o chosen < 6. Mezcla con pares de referencia.
-- **Calidad:** Muestra muestra aleatoria de 20 pares, genera reporte y hace calibración comparando puntajes entre respuestas buenas/malas.
+#### `data/` - Capa de datos
+- **Función:** `build_datasets()` lee `dataset_sft.jsonl` y `dataset_dpo.jsonl` desde `data/`, aplica filtros y genera `train.jsonl` y `eval.jsonl`.
+- **Validadores (`validators.py`):** Detecta emojis, signos de exclamación (`!`, `¡`), bloques de código Python, valida con `ast.parse`, normaliza y limpia texto.
+- **Filtros:** Elimina contenido no permitido antes del entrenamiento.
 
+#### `model/` - Capa de modelo
+- **Modelo base:** `Qwen/Qwen2.5-0.5B-Instruct`
+- **LoRA:** `r=16`, `alpha=32`, `dropout=0.05`. Módulos objetivo configurables en `config.yaml`. Soporta entrenar solo las últimas N capas (`layers_to_transform`).
+- **Entrenamiento:** `max_seq_length=512`, batch size 1, gradient accumulation 8, gradient checkpointing, fp32 (sin bitsandbytes), optimizado para CPU.
+- **Funciones:** `train_sft()`, `train_dpo()`, `merge_adapter()`, `export_gguf()`
 
-### output/ (Capa de salida)
-- **¿Qué hace?** Filtro final obligatorio que se aplica siempre.
-- **Funciones:** `filter_output()` elimina emojis, reemplaza `!` por `.`, elimina `¡`. `validate_format()` verifica estado inicial en mayúsculas y presencia de `COMPLETE`.
+#### `serving/` - Capa de serving
+- **Única con acceso a Ollama:** `generate(messages, model=None, options=None)` hace `POST` a `http://localhost:11434/api/chat`. `unload(model)` libera el modelo de RAM. `create_model(name, modelfile)` crea el modelo desde un Modelfile.
+- **Modelfile:** Define el system prompt de SAMARITAN con parámetros `temperature=0.3`, `top_p`, `repeat_penalty`. `create_model.sh` ejecuta `ollama create samaritan -f Modelfile`.
 
-### ui/ (Capa de interfaz)
-- **¿Qué hace?** TUI al estilo SAMARITAN.
-- **Características:** Fondo negro, texto blanco hueso, rojo solo para alertas, tipografía monoespaciada, texto apareciendo palabra por palabra, indicador `►`. Solo recibe texto ya filtrado de `output/`.
+#### `judge/` - Capa de juez offline
+Genera pares DPO automáticamente mediante un juez local:
 
-## Flujo de ejecución
+1. **A) Candidatos:** Para cada prompt en `train.jsonl` genera 4 respuestas con el modelo generador (por defecto `samaritan`) a `temperature=0.9`. Guarda incrementalmente en `candidates.jsonl`.
+2. **B) Puntuación:** Usa un juez distinto (por defecto `qwen2.5:3b`), `temperature=0`, semilla fija. Descarga el generador con `unload()` antes de cargar el juez. Solicita JSON estricto `{puntaje, motivo}` con reintentos.
+3. **C) Reglas automáticas:** Ajustes deterministas - descartar emojis/signos de exclamación, penalizar código Python inválido, requerir estado inicial en mayúsculas, exigir `AUTHORIZE? [Y/N]` en acciones destructivas, penalizar respuestas excesivamente largas.
+4. **D) Pares DPO:** Selecciona `chosen` (mayor puntaje) vs `rejected` (menor). Se descarta si diferencia < 2 o `chosen < 6`. Se mezclan con pares de referencia. Genera muestra aleatoria de 20 pares, reporte y calibración.
 
-1. **Capa 1:** Construir datasets SFT (`train.jsonl`, `eval.jsonl`).
-2. **Capa 2:** Entrenamiento SFT con LoRA, fusionar adaptador, exportar GGUF.
-3. **Capa 3:** Crear modelo `samaritan` en Ollama desde Modelfile.
-4. **Capa 3b:** Generar candidatos, puntuar con juez, construir `dpo.jsonl`.
-5. **Capa 2:** Entrenamiento DPO sobre adaptador SFT, re-exportar y recrear `samaritan`.
-6. **Capas 4,5,6:** Agente, filtro de salida e interfaz.
+#### `output/` - Capa de salida (obligatoria)
+Siempre se aplica tras cualquier respuesta.
+- **`filter_output()`:** Elimina emojis, reemplaza `!` por `.`, elimina `¡`.
+- **`validate_format()`:** Verifica estado inicial en mayúsculas y presencia de `COMPLETE`.
+
+#### `ui/` - Capa de interfaz
+TUI al estilo SAMARITAN: fondo negro, texto blanco hueso, rojo solo para alertas, tipografía monoespaciada, aparición palabra por palabra, indicador `►`. Solo recibe texto ya filtrado desde `output/`.
+
+#### `agent/` - Capa de agente
+Orquesta el flujo de consulta usando el modelo `samaritan` vía `serving/`.
+
+## Flujo de ejecución completo
+
+1. **Construir datos:** `python main.py build-data` → genera `data/train.jsonl`, `data/eval.jsonl`
+2. **Entrenar SFT:** `python main.py train-sft` → entrena LoRA, fusiona adaptador, exporta GGUF
+3. **Crear modelo Ollama:** `python main.py create-model` → crea `samaritan` desde `serving/Modelfile`
+4. **Construir DPO:** `python main.py build-dpo` → genera candidatos con `samaritan`, puntúa con juez, crea `data/dpo.jsonl`
+5. **Entrenar DPO:** `python main.py train-dpo` → entrena con DPO, re-fusiona, re-exporta, recrear modelo
+6. **Usar:** `python main.py` (modo interactivo) o `python main.py query "..."` / `python main.py ask "..."`
+
+## Uso
+
+### Modo interactivo
+```bash
+python main.py
+```
+Muestra `ANALYZING`, `SAMARITAN`, `COMPLETE` y entra en bucle interactivo. Salir con `exit`, `salir`, `quit`, `q`.
+
+### Consulta con TUI
+```bash
+python main.py query "tu consulta"
+```
+Procesa con el agente, filtra la salida y la muestra con la TUI.
+
+### Consulta directa
+```bash
+python main.py ask "tu consulta"
+```
+Genera directamente con el modelo `samaritan` vía Ollama, filtra y muestra por stdout.
+
+### Evaluación
+```bash
+python main.py eval
+```
 
 ## Configuración
 
-Toda la configuración está en `config.yaml`. Parámetros importantes: LoRA, training, Ollama, judge, paths.
+Toda la configuración se centraliza en `config.yaml`. Secciones principales: `project`, `hardware`, `model`, `training` (sft/dpo), `ollama`, `judge`, `data`, `paths`.
 
-## Hardware objetivo
+Ver `config.yaml` para detalles de parámetros (LoRA, batch, learning rates, seeds, umbrales del juez, etc.).
 
-- AMD Ryzen 5 5500U, sin CUDA/ROCm (solo CPU)
-- ~7 GiB RAM
-- LoRA normal en fp32 (sin bitsandbytes)
-- Todo local y offline
+## Requisitos
+
+- **Python:** 3.10+
+- **Ollama:** Corriendo localmente en `http://localhost:11434`
+- **Hardware objetivo:** AMD Ryzen 5 5500U (CPU-only), sin CUDA/ROCm, ~7 GiB RAM
+- **Dependencias:** Ver `requirements.txt`
+- **Entrenamiento:** fp32 sin bitsandbytes, optimizado para CPU con gradient checkpointing
+
+## Instalación
+
+```bash
+# Crear entorno virtual
+python -m venv .venv
+source .venv/bin/activate  # Linux/macOS
+
+# Instalar dependencias
+pip install -r requirements.txt
+
+# Asegurar Ollama corriendo y tener modelos necesarios
+ollama pull qwen2.5:3b  # juez (recomendado >= tamaño del generador)
+```
+
+## Estructura del repositorio
+
+```
+Samaritan/
+├── agent/          # Lógica del agente
+├── data/           # Datasets y validadores
+├── docs/           # Documentación adicional
+├── judge/          # Juez offline para DPO
+├── model/          # Entrenamiento LoRA, fusión, GGUF
+├── output/         # Filtro obligatorio de salida
+├── serving/        # Cliente Ollama y Modelfile
+├── tests/          # Tests unitarios
+├── ui/             # Interfaz TUI
+├── chat.py         # Utilidades de chat
+├── config.yaml     # Configuración central
+├── eval.py         # Evaluación
+├── main.py         # Punto de entrada CLI
+├── requirements.txt
+├── utils.py        # Utilidades comunes
+└── README.md
+```
+
+## Notas
+
+- Todo el procesamiento es **100% local y offline**.
+- Solo `serving/` conoce Ollama; el resto de capas son agnósticas al backend.
+- El filtro de salida (`output/filter.py`) es **obligatorio** y se aplica en todos los caminos de respuesta.
+- En algunas instalaciones se ha reutilizado un adaptador preexistente en `the-machine-v3/models/samaritan/`.
