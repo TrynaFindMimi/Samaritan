@@ -42,7 +42,7 @@
 | Capa | Exporta | Usado por | Notas |
 |------|---------|-----------|-------|
 | `data` | `build_datasets()` | Scripts/main | Lee archivos JSONL, valida, genera train/eval |
-| `model` | `train_sft()`, `train_dpo()`, `merge_adapter()`, `export_gguf()` | Scripts/main | Usa transformers/peft/trl. Solo CPU, fp32 |
+| `model` | `train_sft()`, `train_dpo()` | Scripts/main | Usa transformers/peft/trl. Solo CPU, fp32 |
 | `serving` | `generate()`, `unload()`, `create_model()` | agent, judge | Única que llama a Ollama API |
 | `judge` | `build_dpo_dataset()` | Scripts/main | Usa solo `serving.generate/unload` |
 | `agent` | `SamaritanAgent` | UI/CLI | Usa solo `serving.generate()`, aplica política |

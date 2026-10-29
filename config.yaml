@@ -1,6 +1,7 @@
 project:
   name: samaritan
   version: 1.0.0
+  chat_template_version: 1.0.0
   offline: true
 
 hardware:
@@ -44,6 +45,7 @@ training:
 
 ollama:
   host: http://localhost:11434
+  base_model: qwen2.5:0.5b
   generator_model: samaritan
   judge_model: qwen2.5:3b  # must be >= generator size
 
@@ -70,5 +72,3 @@ data:
 paths:
   output_dir: model/outputs
   lora_adapter: model/lora_adapter
-  merged_model: model/merged
-  gguf_output: model/gguf

@@ -9,7 +9,6 @@ Este documento describe qué hace cada archivo y cómo se relaciona con las capa
 | `main.py` | Punto de entrada CLI. Gestiona subcomandos (`build-data`, `train-sft`, `create-model`, `build-dpo`, `train-dpo`, `eval`, `query`, `ask`) y modo interactivo. |
 | `config.yaml` | Configuración centralizada (modelo, LoRA, entrenamiento, Ollama, juez, rutas, hardware). |
 | `utils.py` | Utilidades comunes: carga de config, chequeo de RAM antes de operaciones costosas, helpers generales. |
-| `chat.py` | Utilidades relacionadas con conversación/chat. |
 | `eval.py` | Lógica de evaluación del modelo. |
 | `requirements.txt` | Dependencias Python necesarias. |
 | `README.md` | Documentación principal del proyecto. |
@@ -29,27 +28,23 @@ Este documento describe qué hace cada archivo y cómo se relaciona con las capa
 | `validators.py` | Validadores y limpiadores: detección de emojis, `!`, `¡`, bloques de código Python, validación con `ast.parse`, normalización de texto. |
 | `dataset_sft.jsonl` | Dataset fuente para SFT (formato conversacional). |
 | `dataset_dpo.jsonl` | Dataset fuente para DPO (pares de referencia). |
-| `train.jsonl` | Dataset SFT generado (ignorado en git). |
-| `eval.jsonl` | Dataset de evaluación SFT generado (ignorado en git). |
-| `candidates.jsonl` | Candidatos generados por juez automático (ignorado en git). |
-| `dpo.jsonl` | Pares DPO generados (ignorado en git). |
+| `train.jsonl` | Dataset SFT generado por `build-data` (no versionado). |
+| `eval.jsonl` | Dataset de evaluación SFT generado por `build-data` (no versionado). |
+| `candidates.jsonl` | Candidatos generados por `build-dpo` (no versionado). |
+| `dpo.jsonl` | Pares DPO generados por `build-dpo` (no versionado). |
 
 ## `judge/`
 
 | Archivo | Descripción |
 |---|---|
 | `dpo_builder.py` | Constructor automático de dataset DPO. Genera candidatos, los puntúa con juez local, aplica reglas y construye pares chosen/rejected. |
-| `rules.py` | Reglas deterministas aplicadas en la puntuación DPO (penalizaciones/ajustes). |
 
 ## `model/`
 
 | Archivo | Descripción |
 |---|---|
-| `train.py` | Entrenamiento LoRA SFT (`train_sft`), DPO (`train_dpo`), fusión de adaptador (`merge_adapter`) y exportación GGUF (`export_gguf`). Usa `transformers`, `peft`, `trl`, etc. |
-| `outputs/` | Checkpoints y salidas de entrenamiento (ignorado en git). |
+| `train.py` | Entrenamiento LoRA SFT (`train_sft`) y DPO (`train_dpo`). Usa `transformers`, `peft`, `trl`, etc. |
 | `lora_adapter/` | Adaptador LoRA guardado (ignorado en git). |
-| `merged/` | Modelo fusionado (ignorado en git). |
-| `gguf/` | Archivos GGUF exportados (ignorado en git). |
 
 ## `serving/`
 
@@ -57,7 +52,7 @@ Este documento describe qué hace cada archivo y cómo se relaciona con las capa
 |---|---|
 | `ollama_client.py` | Cliente HTTP para Ollama. Funciones: `generate()`, `unload()`, `create_model()`. Única capa con conocimiento de Ollama. |
 | `Modelfile` | Definición del modelo `samaritan` para Ollama (SYSTEM prompt, parámetros). |
-| `create_model.sh` | Script para crear el modelo con `ollama create samaritan -f Modelfile`. |
+| `create_model.sh` | Descarga `qwen2.5:0.5b`, elimina el modelo anterior y ejecuta `ollama create samaritan -f Modelfile`. |
 
 ## `output/`
 
@@ -88,4 +83,3 @@ Este documento describe qué hace cada archivo y cómo se relaciona con las capa
 | `EVALUATION.md` | Guía de evaluación. |
 | `QUICKSTART.md` | Guía rápida de inicio. |
 | `FILEMAP.md` | Este documento - mapa detallado de archivos. |
-| `graphs/` | Diagramas/representaciones gráficas (si existen). |

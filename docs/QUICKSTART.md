@@ -1,95 +1,71 @@
-# Quickstart - SAMARITAN
+# Inicio rapido - SAMARITAN
 
 ## Requisitos
-- Python 3.12+ con venv
-- Ollama corriendo en `http://localhost:11434`
-- RAM >= 4GB disponible (recomendado para entrenar)
-- Solo CPU
 
-## Instalación
+- Python 3.10 o superior
+- Ollama en `http://localhost:11434`
+- CPU suficiente para `qwen2.5:0.5b`
+
+## Instalacion
 
 ```bash
 cd /home/mimi/Samaritan
 python -m venv .venv
-source .venv/bin/activate  # o fish equivalente
+source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-## Uso
+## Crear el modelo
 
-### 1. Construir datasets
 ```bash
-PYTHONPATH=/home/mimi/Samaritan python main.py build-data
+./serving/create_model.sh
 ```
-Lee `data/dataset_sft.jsonl` y genera `data/train.jsonl` y `data/eval.jsonl`.
 
-### 2. Entrenar SFT (LoRA)
-```bash
-PYTHONPATH=/home/mimi/Samaritan python main.py train-sft
-```
-Entrena con LoRA r=16, alpha=32, fp32, CPU. Guarda adaptador en `model/lora_adapter/`.
+El script descarga `qwen2.5:0.5b`, elimina el modelo `samaritan` anterior y lo
+crea de nuevo con el system prompt de `serving/Modelfile`.
 
-### 3. Crear modelo en Ollama
+Equivalente manual:
+
 ```bash
-PYTHONPATH=/home/mimi/Samaritan python main.py create-model
-# o directamente:
+ollama pull qwen2.5:0.5b
+ollama rm samaritan
 ollama create samaritan -f serving/Modelfile
 ```
 
-### 4. Construir dataset DPO con juez offline
+## Usar
+
 ```bash
-PYTHONPATH=/home/mimi/Samaritan python main.py build-dpo
-```
-Genera candidatos, puntúa con juez local, construye pares DPO en `data/dpo.jsonl`.
-
-### 5. Entrenar DPO
-```bash
-PYTHONPATH=/home/mimi/Samaritan python main.py train-dpo
-```
-DPO con TRL sobre adaptador SFT.
-
-### 6. Evaluación
-```bash
-PYTHONPATH=/home/mimi/Samaritan python main.py eval
-```
-
-## Probar el modelo
-
-```python
-from serving.ollama_client import generate
-from output.filter import filter_output
-
-resp = generate([{"role": "user", "content": "Analiza el estado del sistema"}], model="samaritan")
-print(filter_output(resp))
-```
-
-## Usar el agente
-
-```python
-from agent.agent import SamaritanAgent
-from ui.tui import SamaritanTUI
-
-agent = SamaritanAgent()
-tui = SamaritanTUI()
-resp = agent.process("Analiza el estado del sistema")
-tui.show(resp)
+python main.py
+python main.py query "Analiza el estado del sistema"
+python main.py ask "Analiza el estado del sistema"
 ```
 
 ## Tests
 
 ```bash
-PYTHONPATH=/home/mimi/Samaritan /home/mimi/Samaritan/.venv/bin/python -c "
-# ejecutar tests manualmente
-from data import validators
-from judge import dpo_builder
-from output import filter
-# ... ver tests/test_*.py
-"
+.venv/bin/pip install pytest
+.venv/bin/python -m pytest tests/ -q
 ```
 
-## Notas importantes
-- Solo `serving/` conoce Ollama
-- Todo corre offline
-- RAM se monitorea con `utils.check_ram_before()`
-- Si RAM > 5.5 GiB se avisa para reducir `max_seq_length` o tamaño
-- El filtro de salida se aplica SIEMPRE
+## Entrenamiento opcional
+
+Solo si quieres ajustar el estilo del modelo. No es necesario para usar el
+agente.
+
+```bash
+python main.py build-data
+python main.py train-sft
+python main.py create-model
+python main.py build-dpo
+python main.py train-dpo
+python main.py eval
+```
+
+Ver [TRAINING.md](TRAINING.md) para los detalles.
+
+## Notas
+
+- Solo `serving/` conoce Ollama.
+- Todo corre offline.
+- `output/filter_output()` se aplica siempre, incluso si el modelo falla.
+- `utils.check_ram_before()` avisa si el sistema se queda sin RAM.

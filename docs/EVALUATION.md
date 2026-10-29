@@ -16,10 +16,11 @@ base                 100.0%           0.0%                100.0%
 samaritan            100.0%           100.0%                100.0%
 ```
 
-- **Modelo base:** `Qwen/Qwen2.5-0.5B-Instruct` (usado vía Ollama como referencia)
-- **Samaritan:** Modelo con adaptador LoRA copiado + Modelfile con system prompt
+- **Modelo base:** `qwen2.5:0.5b` en Ollama
+- **Samaritan:** el mismo modelo base con el system prompt de `serving/Modelfile`
 
-La mejora principal es en el **estado inicial correcto** (0% → 100%), logrado mediante el system prompt y el adaptador entrenado.
+La mejora del estado inicial depende del system prompt. Si se entrena un
+adaptador LoRA, la evaluacion se ejecuta igual sobre el modelo `samaritan`.
 
 ## Prompts de evaluación
 

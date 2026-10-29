@@ -2,8 +2,8 @@ from output import filter
 
 
 def test_filter_removes_emoji():
-    out = filter.filter_output("hola 😊!")
-    assert "😊" not in out
+    out = filter.filter_output("hola \U0001F60A!")
+    assert "\U0001F60A" not in out
     assert "!" not in out
 
 

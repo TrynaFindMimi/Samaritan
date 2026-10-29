@@ -141,7 +141,7 @@ def run_eval():
         resps = []
         for p in prompts:
             try:
-                r = generate([{"role": "user", "content": p}], model=cfg['model']['base_model'])
+                r = generate([{"role": "user", "content": p}], model=cfg.get('ollama', {}).get('base_model', 'qwen2.5:0.5b'))
                 resps.append(r)
             except Exception as e:
                 resps.append(f"ERROR {e}")

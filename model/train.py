@@ -1,7 +1,6 @@
 import os
 import json
 from pathlib import Path
-from typing import Optional
 
 from utils import load_config, check_ram_before
 
@@ -12,6 +11,23 @@ def _get_device():
         return "cuda" if torch.cuda.is_available() else "cpu"
     except Exception:
         return "cpu"
+
+
+def _stamp_chat_template(lora_path, cfg):
+    """Marca el chat template con su version. save_pretrained lo sobrescribe."""
+    path = os.path.join(lora_path, "chat_template.jinja")
+    if not os.path.exists(path):
+        return
+    marker = "{# SAMARITAN chat template"
+    with open(path) as f:
+        template = f.read()
+    if marker in template:
+        return
+    version = cfg.get('project', {}).get('chat_template_version', '1.0.0')
+    base = cfg.get('model', {}).get('base_model', 'unknown')
+    header = f"{marker} | version: {version} | base: {base} #}}\n"
+    with open(path, 'w') as f:
+        f.write(header + template)
 
 
 def train_sft(config=None):
@@ -138,68 +154,9 @@ def train_sft(config=None):
     os.makedirs(lora_path, exist_ok=True)
     model.save_pretrained(lora_path)
     tokenizer.save_pretrained(lora_path)
+    _stamp_chat_template(lora_path, cfg)
     print(f"SFT completo. Adaptador guardado en {lora_path}")
     return lora_path
-
-
-def merge_adapter(config=None):
-    cfg = config or load_config()
-    check_ram_before("merge_adapter", cfg)
-    try:
-        import torch
-        from transformers import AutoModelForCausalLM, AutoTokenizer
-        from peft import PeftModel
-    except ImportError as e:
-        raise ImportError(f"Missing deps: {e}")
-
-    model_cfg = cfg['model']
-    paths_cfg = cfg['paths']
-    base_model = model_cfg['base_model']
-    lora_path = paths_cfg['lora_adapter']
-    merged_path = paths_cfg['merged_model']
-
-    tokenizer = AutoTokenizer.from_pretrained(base_model, trust_remote_code=True)
-    model = AutoModelForCausalLM.from_pretrained(base_model, trust_remote_code=True, torch_dtype=torch.float32)
-    model = PeftModel.from_pretrained(model, lora_path)
-    model = model.merge_and_unload()
-    os.makedirs(merged_path, exist_ok=True)
-    model.save_pretrained(merged_path)
-    tokenizer.save_pretrained(merged_path)
-    print(f"Modelo fusionado guardado en {merged_path}")
-    return merged_path
-
-
-def export_gguf(config=None, model_path: Optional[str] = None):
-    cfg = config or load_config()
-    check_ram_before("export_gguf", cfg)
-    paths_cfg = cfg['paths']
-    gguf_out = paths_cfg['gguf_output']
-    os.makedirs(gguf_out, exist_ok=True)
-    if model_path is None:
-        model_path = paths_cfg['merged_model']
-    try:
-        import subprocess
-        candidates = [
-            os.path.expanduser('~/llama.cpp/convert_hf_to_gguf.py'),
-            '/usr/local/bin/convert_hf_to_gguf.py',
-            'llama.cpp/convert_hf_to_gguf.py',
-        ]
-        convert_script = None
-        for c in candidates:
-            if os.path.exists(c):
-                convert_script = c
-                break
-        if convert_script:
-            out_file = os.path.join(gguf_out, 'samaritan-q4_K_M.gguf')
-            cmd = ['python', convert_script, model_path, '--outfile', out_file, '--outtype', 'q4_K_M']
-            print('Ejecutando:', ' '.join(cmd))
-            subprocess.run(cmd, check=False)
-            print(f"GGUF exportado a {out_file} (si llama.cpp está instalado)")
-            return out_file
-    except Exception as e:
-        print(f"GGUF export falló: {e}")
-    print("No se encontró convert_hf_to_gguf.py de llama.cpp. Instala llama.cpp para exportar GGUF Q4_K_M.")
-    return gguf_out
 
 
 def train_dpo(config=None):
@@ -271,5 +228,6 @@ def train_dpo(config=None):
 
     model.save_pretrained(lora_path)
     tokenizer.save_pretrained(lora_path)
+    _stamp_chat_template(lora_path, cfg)
     print(f"DPO completo. Adaptador actualizado en {lora_path}")
     return lora_path

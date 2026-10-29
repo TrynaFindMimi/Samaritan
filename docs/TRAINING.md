@@ -2,10 +2,9 @@
 
 ## Estado actual
 
-En esta sesión:
-- **SFT:** Se reutilizó el adaptador LoRA preexistente de `the-machine-v3/models/samaritan/` (copiado a `model/lora_adapter/`). El reentrenamiento SFT desde cero fue interrumpido por timeout en CPU.
-- **DPO:** Se construyó `data/dpo.jsonl` con 30 pares (generados parcialmente + pares de referencia). El entrenamiento DPO fue interrumpido por recursos. 
-- **Resultado:** El modelo `samaritan` en Ollama usa el adaptador copiado + Modelfile con system prompt, lo que da el comportamiento observado en las pruebas.
+El modelo `samaritan` en Ollama es `qwen2.5:0.5b` mas el system prompt de
+`serving/Modelfile`. No usa ningun adaptador por defecto. El entrenamiento es
+opcional y solo sirve para ajustar el estilo del modelo.
 
 ## Configuración SFT (config.yaml)
 
@@ -55,7 +54,7 @@ training:
 4. Tokeniza con `max_seq_length=512`
 5. Entrena con `Trainer` (gradient checkpointing, sin CUDA)
 6. Guarda adaptador en `model/lora_adapter/`
-7. Fusiona con `merge_adapter()` y exporta GGUF con `export_gguf()` si hay llama.cpp
+7. Guarda solo el adaptador en `model/lora_adapter/`
 
 ## Proceso DPO (implementado)
 
@@ -182,7 +181,7 @@ model.save_pretrained(lora_path)  # guardar solo adaptador
 | `is_trainable=True` | El adaptador se sigue entrenando con DPO (continuando desde el SFT). |
 | `torch.float32` | Obligatorio en CPU sin bitsandbytes. |
 | `gradient_checkpointing=True` | Reduce uso de memoria a costa de tiempo. |
-| Guardar solo adaptador | Más ligero. Se puede fusionar con `merge_adapter()` después. |
+| Guardar solo adaptador | Más ligero. Queda en `model/lora_adapter/`. |
 
 ### Nota sobre datasets
 - **Dataset propio (SAMARITAN):** Construido con juez local + reglas deterministas, alineado al tono frío/cortés/declarativo. Recomendado para mantener la personalidad.

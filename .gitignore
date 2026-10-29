@@ -27,22 +27,16 @@ ENV/
 env/
 
 # Models and weights (large files)
-*.gguf
 *.bin
 *.safetensors
 model/outputs/
 model/lora_adapter/
-model/merged/
-model/gguf/
 
 # Data outputs (generated)
 data/train.jsonl
 data/eval.jsonl
 data/candidates.jsonl
 data/dpo.jsonl
-
-# Ollama
-*.gguf
 
 # IDE
 .vscode/

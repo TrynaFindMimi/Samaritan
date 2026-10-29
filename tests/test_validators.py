@@ -2,7 +2,7 @@ from data import validators
 
 
 def test_has_emoji():
-    assert validators.has_emoji("hola 😊") == True
+    assert validators.has_emoji("hola \U0001F60A") == True
     assert validators.has_emoji("hola") == False
 
 

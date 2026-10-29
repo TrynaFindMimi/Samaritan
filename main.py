@@ -12,12 +12,10 @@ def cmd_build_data(args):
 
 
 def cmd_train_sft(args):
-    from model.train import train_sft, merge_adapter, export_gguf
+    from model.train import train_sft
     check_ram_before("train_sft")
     train_sft()
-    merge_adapter()
-    export_gguf()
-    print("OK: SFT completado")
+    print("OK: SFT completado. Adaptador guardado en model/lora_adapter/")
 
 
 def cmd_create_model(args):
@@ -36,12 +34,10 @@ def cmd_build_dpo(args):
 
 
 def cmd_train_dpo(args):
-    from model.train import train_dpo, merge_adapter, export_gguf
+    from model.train import train_dpo
     check_ram_before("train_dpo")
     train_dpo()
-    merge_adapter()
-    export_gguf()
-    print("OK: DPO completado")
+    print("OK: DPO completado. Adaptador guardado en model/lora_adapter/")
 
 
 def cmd_eval(args):
