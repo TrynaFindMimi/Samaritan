@@ -44,6 +44,7 @@ training:
 
 ollama:
   host: http://localhost:11434
+  base_model: qwen2.5:0.5b
   generator_model: samaritan
   judge_model: qwen2.5:3b  # must be >= generator size
 

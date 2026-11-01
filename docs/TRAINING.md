@@ -4,8 +4,9 @@
 
 En esta sesión:
 - **SFT:** Se reutilizó el adaptador LoRA preexistente de `the-machine-v3/models/samaritan/` (copiado a `model/lora_adapter/`). El reentrenamiento SFT desde cero fue interrumpido por timeout en CPU.
-- **DPO:** Se construyó `data/dpo.jsonl` con 30 pares (generados parcialmente + pares de referencia). El entrenamiento DPO fue interrumpido por recursos. 
-- **Resultado:** El modelo `samaritan` en Ollama usa el adaptador copiado + Modelfile con system prompt, lo que da el comportamiento observado en las pruebas.
+- **DPO:** `data/dpo.jsonl` contiene 30 pares de referencia; en esta copia no se añadieron pares generados nuevos. El entrenamiento DPO fue interrumpido por recursos.
+- **Resultado:** El modelo `samaritan` en Ollama usa `qwen2.5:0.5b` + el system prompt. Ollama 0.40.12 no soporta `ADAPTER`, así que el adaptador no está desplegado. Ver `docs/DEPLOYMENT.md`.
+- **Código DPO:** `train_dpo()` ya carga el adaptador con `is_trainable=True`; queda pendiente ejecutarlo con las dependencias instaladas.
 
 ## Configuración SFT (config.yaml)
 

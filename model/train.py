@@ -1,5 +1,6 @@
 import os
 import json
+import inspect
 from pathlib import Path
 from typing import Optional
 
@@ -118,7 +119,7 @@ def train_sft(config=None):
         save_steps=train_cfg.get('save_steps', 100),
         fp16=False,
         bf16=False,
-        no_cuda=True,
+        use_cpu=True,
         dataloader_num_workers=0,
         report_to=[],
         save_safetensors=True,
@@ -228,9 +229,19 @@ def train_dpo(config=None):
         tokenizer.pad_token = tokenizer.eos_token
 
     model = AutoModelForCausalLM.from_pretrained(base_model, trust_remote_code=True, torch_dtype=torch.float32)
-    model = PeftModel.from_pretrained(model, lora_path)
+    # is_trainable=True es obligatorio: sin esto PEFT carga el adaptador en
+    # modo inferencia y DPO no actualiza ningún peso.
+    model = PeftModel.from_pretrained(model, lora_path, is_trainable=True)
     model.config.use_cache = False
     model_ref = None
+
+    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    if trainable_params == 0:
+        raise RuntimeError(
+            "DPO: no hay parámetros entrenables. Revisa que el adaptador "
+            "exista y que se haya cargado con is_trainable=True."
+        )
+    print(f"DPO parámetros entrenables: {trainable_params:,}")
 
     data = []
     with open(dpo_path) as f:
@@ -253,20 +264,29 @@ def train_dpo(config=None):
         learning_rate=train_cfg.get('learning_rate', 5e-7),
         fp16=False,
         bf16=False,
-        no_cuda=True,
+        use_cpu=True,
         dataloader_num_workers=0,
         report_to=[],
         seed=train_cfg.get('seed', 42),
         output_dir=os.path.join(paths_cfg['output_dir'], 'dpo'),
     )
 
-    trainer = DPOTrainer(
-        model,
-        model_ref,
-        args=dpo_config,
-        train_dataset=dataset,
-        tokenizer=tokenizer,
-    )
+    trainer_kwargs = {
+        "model": model,
+        "ref_model": model_ref,
+        "args": dpo_config,
+        "train_dataset": dataset,
+    }
+    # TRL reciente renombró "tokenizer" a "processing_class".
+    trainer_params = inspect.signature(DPOTrainer.__init__).parameters
+    if "processing_class" in trainer_params:
+        trainer_kwargs["processing_class"] = tokenizer
+    elif "tokenizer" in trainer_params:
+        trainer_kwargs["tokenizer"] = tokenizer
+    else:
+        # Versiones modernas que aceptan el argumento vía **kwargs.
+        trainer_kwargs["processing_class"] = tokenizer
+    trainer = DPOTrainer(**trainer_kwargs)
     trainer.train()
 
     model.save_pretrained(lora_path)

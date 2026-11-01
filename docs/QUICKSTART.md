@@ -9,7 +9,7 @@
 ## Instalación
 
 ```bash
-cd /home/mimi/Samaritan
+cd /Users/leonardocarrillo/AIProj/Samaritan
 python -m venv .venv
 source .venv/bin/activate  # o fish equivalente
 pip install -r requirements.txt
@@ -19,38 +19,38 @@ pip install -r requirements.txt
 
 ### 1. Construir datasets
 ```bash
-PYTHONPATH=/home/mimi/Samaritan python main.py build-data
+PYTHONPATH=/Users/leonardocarrillo/AIProj/Samaritan python main.py build-data
 ```
 Lee `data/dataset_sft.jsonl` y genera `data/train.jsonl` y `data/eval.jsonl`.
 
 ### 2. Entrenar SFT (LoRA)
 ```bash
-PYTHONPATH=/home/mimi/Samaritan python main.py train-sft
+PYTHONPATH=/Users/leonardocarrillo/AIProj/Samaritan python main.py train-sft
 ```
 Entrena con LoRA r=16, alpha=32, fp32, CPU. Guarda adaptador en `model/lora_adapter/`.
 
 ### 3. Crear modelo en Ollama
 ```bash
-PYTHONPATH=/home/mimi/Samaritan python main.py create-model
+PYTHONPATH=/Users/leonardocarrillo/AIProj/Samaritan python main.py create-model
 # o directamente:
 ollama create samaritan -f serving/Modelfile
 ```
 
 ### 4. Construir dataset DPO con juez offline
 ```bash
-PYTHONPATH=/home/mimi/Samaritan python main.py build-dpo
+PYTHONPATH=/Users/leonardocarrillo/AIProj/Samaritan python main.py build-dpo
 ```
 Genera candidatos, puntúa con juez local, construye pares DPO en `data/dpo.jsonl`.
 
 ### 5. Entrenar DPO
 ```bash
-PYTHONPATH=/home/mimi/Samaritan python main.py train-dpo
+PYTHONPATH=/Users/leonardocarrillo/AIProj/Samaritan python main.py train-dpo
 ```
 DPO con TRL sobre adaptador SFT.
 
 ### 6. Evaluación
 ```bash
-PYTHONPATH=/home/mimi/Samaritan python main.py eval
+PYTHONPATH=/Users/leonardocarrillo/AIProj/Samaritan python main.py eval
 ```
 
 ## Probar el modelo
@@ -72,13 +72,13 @@ from ui.tui import SamaritanTUI
 agent = SamaritanAgent()
 tui = SamaritanTUI()
 resp = agent.process("Analiza el estado del sistema")
-tui.show(resp)
+tui.respond(resp)
 ```
 
 ## Tests
 
 ```bash
-PYTHONPATH=/home/mimi/Samaritan /home/mimi/Samaritan/.venv/bin/python -c "
+PYTHONPATH=/Users/leonardocarrillo/AIProj/Samaritan /Users/leonardocarrillo/AIProj/Samaritan/.venv/bin/python -c "
 # ejecutar tests manualmente
 from data import validators
 from judge import dpo_builder

@@ -76,8 +76,8 @@ flowchart LR
 | **Datos** | `data/` | Generación, validación y limpieza de datasets para entrenamiento SFT y DPO. | `dataset.py`, `validators.py` |
 | **Modelo** | `model/` | Entrenamiento LoRA (SFT/DPO), fusión de adaptador y exportación a GGUF. | `train.py` |
 | **Serving** | `serving/` | Única capa que interactúa con Ollama. Generación, creación de modelos y descarga de VRAM. | `ollama_client.py`, `Modelfile`, `create_model.sh` |
-| **Juez (DPO)** | `judge/` | Generación automática de pares preferidos/rechazados con juez local sin anotación manual. | `dpo_builder.py`, `rules.py` |
-| **Agente** | `agent/` | Lógica del agente SAMARITAN (orquestación). Reconoce jerarquía `ADMIN`. | `agent.py` |
+| **Juez (DPO)** | `judge/` | Generación automática de pares preferidos/rechazados con juez local sin anotación manual. | `dpo_builder.py` |
+| **Agente** | `agent/` | Lógica del agente SAMARITAN (orquestación, comandos y acciones destructivas). El rol `ADMIN` vive en el system prompt, no en el código. | `agent.py` |
 | **Salida** | `output/` | Filtro obligatorio de post-procesado. Garantiza formato y cumplimiento de reglas. | `filter.py` |
 | **UI** | `ui/` | Interfaz TUI en modo operativo (texto palabra por palabra, estilo terminal). | `tui.py` |
 | **Utilidades** | Raíz | Configuración, chequeo de RAM, helpers comunes. | `config.yaml`, `utils.py` |
@@ -109,7 +109,7 @@ graph LR
 
 #### `serving/` - Capa de serving
 - **Única con acceso a Ollama:** `generate(messages, model=None, options=None)` hace `POST` a `http://localhost:11434/api/chat`. `unload(model)` libera el modelo de RAM. `create_model(name, modelfile)` crea el modelo desde un Modelfile.
-- **Modelfile:** Define el system prompt de SAMARITAN con protocolo de seguridad, reconocimiento `ADMIN` y parámetros `temperature=0.3`, `top_p=0.9`, `repeat_penalty=1.1`. `create_model.sh` ejecuta `ollama create samaritan -f Modelfile`.
+- **Modelfile:** Define el system prompt de SAMARITAN con protocolo de seguridad, mención de `ADMIN` (sin autenticación real) y parámetros `temperature=0.3`, `top_p=0.9`, `repeat_penalty=1.1`. `create_model.sh` ejecuta `ollama create samaritan -f Modelfile`.
 
 #### `judge/` - Capa de juez offline
 Genera pares DPO automáticamente mediante un juez local:
@@ -171,25 +171,20 @@ flowchart LR
 TUI al estilo SAMARITAN: fondo negro, texto blanco hueso, rojo solo para alertas, tipografía monoespaciada, aparición palabra por palabra, indicador `►`. Solo recibe texto ya filtrado desde `output/`.
 
 #### `agent/` - Capa de agente
-Orquesta el flujo de consulta usando el modelo `samaritan` vía `serving/`. Incluye protección contra comandos prohibidos, detección de acciones destructivas y reconocimiento de `ADMIN` con acceso privilegiado.
+Orquesta el flujo de consulta usando el modelo `samaritan` vía `serving/`. Incluye protección contra comandos prohibidos y detección de acciones destructivas. El rol `ADMIN` se menciona en el system prompt del `Modelfile`; el agente **no** implementa autenticación real de usuarios.
 
 ```mermaid
 flowchart TD
-    A[Mensaje Usuario] --> B{Identifica ADMIN?}
-    B -->|SI| C[ACCESS GRANTED :: ADMIN]
-    B -->|NO| D{Comando prohibido?}
+    A[Mensaje Usuario] --> D{Comando prohibido?}
     D -->|SI| E[ANOMALY DETECTED\nCOMANDO PROHIBIDO\nCOMPLETE]
     D -->|NO| F{Acción destructiva?}
     F -->|SI| G[ACCIÓN + IMPACTO\nAUTHORIZE? Y/N]
     F -->|NO| H[Generar con samaritan]
     H --> I[Aplicar filtro_output]
-    C --> I
     G --> I
     I --> J[Respuesta Filtrada]
     
     style A fill:#3498db,stroke:#fff,color:#fff
-    style B fill:#9b59b6,stroke:#fff,color:#fff
-    style C fill:#2ecc71,stroke:#fff,color:#fff
     style D fill:#e74c3c,stroke:#fff,color:#fff
     style E fill:#c0392b,stroke:#fff,color:#fff
     style F fill:#e67e22,stroke:#fff,color:#fff
@@ -328,7 +323,6 @@ mindmap
       validators.py
     judge
       dpo_builder.py
-      rules.py
     model
       train.py
     serving
@@ -347,7 +341,7 @@ mindmap
 
 ```
 Samaritan/
-├── agent/          # Lógica del agente (reconoce ADMIN)
+├── agent/          # Lógica del agente (comandos y acciones destructivas)
 ├── data/           # Datasets y validadores
 ├── docs/           # Documentación + gráficas
 ├── judge/          # Juez offline para DPO
@@ -372,12 +366,14 @@ Samaritan/
 - [**EVALUATION.md**](docs/EVALUATION.md) - Guía de evaluación
 - [**QUICKSTART.md**](docs/QUICKSTART.md) - Guía rápida de inicio
 - [**FILEMAP.md**](docs/FILEMAP.md) - Mapa detallado de archivos
+- [**DEPLOYMENT.md**](docs/DEPLOYMENT.md) - Estado del despliegue del adaptador y ruta GGUF
 
 ## Notas
 
 - Todo el procesamiento es **100% local y offline**.
 - Solo `serving/` conoce Ollama; el resto de capas son agnósticas al backend.
 - El filtro de salida (`output/filter.py`) es **obligatorio** y se aplica en todos los caminos de respuesta.
-- Protocolo de seguridad estricto con reconocimiento de jerarquía **ADMIN**.
+- Protocolo de seguridad estricto. `ADMIN` se menciona en el system prompt; no es autenticación real.
 - En algunas instalaciones se ha reutilizado un adaptador preexistente en `the-machine-v3/models/samaritan/`.
+- Ollama 0.40.12 no soporta `ADAPTER`; el adaptador no está desplegado. Ver `docs/DEPLOYMENT.md`.
 ```

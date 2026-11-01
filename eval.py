@@ -4,6 +4,7 @@ import ast
 from utils import load_config
 from serving.ollama_client import generate
 from data.validators import has_emoji, contains_exclamation
+from output.filter import VALID_STATES
 
 
 def load_jsonl(path):
@@ -84,13 +85,12 @@ def evaluate_responses(responses):
     correct_state = 0
     python_ok = 0
     python_total = 0
-    valid_states = ["ANALYZING", "EXECUTING", "COMPLETE", "ANOMALY DETECTED", "DATOS INSUFICIENTES"]
     import re
     for r in responses:
         if not has_emoji(r) and not contains_exclamation(r):
             no_emoji_excl += 1
         starts_ok = False
-        for s in valid_states:
+        for s in VALID_STATES:
             if r.strip().startswith(s):
                 starts_ok = True
                 break
@@ -128,6 +128,9 @@ def evaluate_responses(responses):
 
 def run_eval():
     cfg = load_config()
+    ollama_cfg = cfg.get('ollama', {})
+    base_model = ollama_cfg.get('base_model', 'qwen2.5:0.5b')
+    generator_model = ollama_cfg.get('generator_model', 'samaritan')
     prompts = generate_eval_prompts(cfg, cfg['data'].get('eval_prompts_count', 30))
     eval_path = cfg['data']['eval_out']
     eval_items = [{"prompt": p} for p in prompts]
@@ -141,7 +144,7 @@ def run_eval():
         resps = []
         for p in prompts:
             try:
-                r = generate([{"role": "user", "content": p}], model=cfg['model']['base_model'])
+                r = generate([{"role": "user", "content": p}], model=base_model)
                 resps.append(r)
             except Exception as e:
                 resps.append(f"ERROR {e}")
@@ -154,7 +157,7 @@ def run_eval():
         resps = []
         for p in prompts:
             try:
-                r = generate([{"role": "user", "content": p}], model='samaritan')
+                r = generate([{"role": "user", "content": p}], model=generator_model)
                 resps.append(r)
             except Exception as e:
                 resps.append(f"ERROR {e}")

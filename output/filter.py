@@ -1,44 +1,63 @@
 import re
-from data.validators import has_emoji, clean_text
+from data.validators import clean_text
 
 
-VALID_STATES = ["ANALYZING", "EXECUTING", "COMPLETE", "ANOMALY DETECTED", "DATOS INSUFICIENTES"]
+VALID_STATES = [
+    "ANALYZING",
+    "SCANNING",
+    "EXECUTING",
+    "MONITORING",
+    "STANDBY",
+    "ACCESS GRANTED",
+    "ACCESS DENIED",
+    "ANOMALY DETECTED",
+    "DATOS INSUFICIENTES",
+    "COMPLETE",
+]
+
+# Bloques cercados con ``` y código inline con `...`.
+# El grupo de captura permite separar código de prosa sin modificarlo.
+_CODE_SEGMENT_RE = re.compile(r'(```[\s\S]*?```|`[^`\n]*`)')
+_COMPLETE_RE = re.compile(r'\bCOMPLETE\b[.!?]*\s*$')
+
+
+def _split_code(text: str):
+    """Devuelve las partes alternas: prosa, código, prosa, código..."""
+    return _CODE_SEGMENT_RE.split(text)
+
+
+def _prose_only(text: str) -> str:
+    parts = _split_code(text)
+    return "".join(part for index, part in enumerate(parts) if index % 2 == 0)
 
 
 def filter_output(text: str) -> str:
-    """Filtro final obligatorio: elimina emojis, reemplaza '!' por '.', elimina '¡'. Debe aplicarse aunque el modelo falle."""
+    """Filtro final obligatorio.
+
+    Limpia emojis, '¡' y '!' en la prosa, pero preserva el contenido de
+    bloques de código e inline code para no romper operadores como `!=`.
+    Debe aplicarse aunque el modelo falle.
+    """
     if text is None:
         text = ""
-    text = clean_text(text)
-    text = text.replace('!', '.')
-    text = text.replace('¡', '')
-    emoji_pattern = re.compile(
-        "["
-        "\U0001F600-\U0001F64F"
-        "\U0001F300-\U0001F5FF"
-        "\U0001F680-\U0001F6FF"
-        "\U0001F1E0-\U0001F1FF"
-        "\U00002702-\U000027B0"
-        "\U000024C2-\U0001F251"
-        "]+",
-        flags=re.UNICODE,
-    )
-    text = emoji_pattern.sub('', text)
-    return text
+
+    cleaned = []
+    for index, part in enumerate(_split_code(text)):
+        if not part:
+            continue
+        if index % 2 == 1:
+            cleaned.append(part)
+        else:
+            cleaned.append(clean_text(part))
+    return "".join(cleaned)
 
 
 def validate_format(text: str) -> bool:
-    """Valida el formato (estado inicial en mayúsculas, cierre con COMPLETE)."""
+    """Valida estado inicial en mayúsculas y cierre con COMPLETE."""
     if not text:
         return False
-    text_stripped = text.strip()
-    starts_valid = False
-    for state in VALID_STATES:
-        if text_stripped.startswith(state):
-            starts_valid = True
-            break
-    if not starts_valid:
+
+    stripped = _prose_only(text).strip()
+    if not any(stripped.startswith(state) for state in VALID_STATES):
         return False
-    if 'COMPLETE' not in text_stripped:
-        pass
-    return starts_valid
+    return bool(_COMPLETE_RE.search(stripped))

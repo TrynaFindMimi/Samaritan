@@ -81,5 +81,7 @@ def clean_text(s: str) -> str:
         flags=re.UNICODE,
     )
     s = emoji_pattern.sub('', s)
-    s = s.replace('¡', '').replace('!', '.')
+    s = s.replace('¡', '')
+    # No convertir "!=" en ".=": el signo forma parte de un operador de código.
+    s = re.sub(r'!(?!=)', '.', s)
     return s

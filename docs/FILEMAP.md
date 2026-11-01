@@ -39,7 +39,6 @@ Este documento describe qué hace cada archivo y cómo se relaciona con las capa
 | Archivo | Descripción |
 |---|---|
 | `dpo_builder.py` | Constructor automático de dataset DPO. Genera candidatos, los puntúa con juez local, aplica reglas y construye pares chosen/rejected. |
-| `rules.py` | Reglas deterministas aplicadas en la puntuación DPO (penalizaciones/ajustes). |
 
 ## `model/`
 
@@ -78,6 +77,8 @@ Este documento describe qué hace cada archivo y cómo se relaciona con las capa
 | `test_validators.py` | Tests para validadores de datos. |
 | `test_rules.py` | Tests para reglas del juez DPO. |
 | `test_output_filter.py` | Tests para el filtro de salida obligatorio. |
+| `test_agent.py` | Tests para comandos prohibidos y acciones destructivas. |
+| `test_utils.py` | Tests para la lógica de RAM en `utils.py`. |
 
 ## `docs/`
 
@@ -88,4 +89,5 @@ Este documento describe qué hace cada archivo y cómo se relaciona con las capa
 | `EVALUATION.md` | Guía de evaluación. |
 | `QUICKSTART.md` | Guía rápida de inicio. |
 | `FILEMAP.md` | Este documento - mapa detallado de archivos. |
+| `DEPLOYMENT.md` | Estado del despliegue del adaptador y ruta GGUF pendiente. |
 | `graphs/` | Diagramas/representaciones gráficas (si existen). |
