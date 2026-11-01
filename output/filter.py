@@ -61,3 +61,25 @@ def validate_format(text: str) -> bool:
     if not any(stripped.startswith(state) for state in VALID_STATES):
         return False
     return bool(_COMPLETE_RE.search(stripped))
+
+
+def finalize_output(text: str, default_state: str = "ANALYZING") -> str:
+    """Filtra y garantiza el contrato de salida de SAMARITAN.
+
+    Añade un estado inicial si falta y cierra con COMPLETE si no está.
+    Es idempotente: si el texto ya cumple, no lo modifica.
+    """
+    cleaned = filter_output(text).strip()
+    if not cleaned:
+        return "ANALYZING\nCOMPLETE"
+
+    if not any(cleaned.startswith(state) for state in VALID_STATES):
+        # Las respuestas de autorización empiezan con ACCIÓN; EXECUTING encaja.
+        if cleaned.startswith("ACCIÓN"):
+            default_state = "EXECUTING"
+        cleaned = f"{default_state}\n{cleaned}"
+
+    if not _COMPLETE_RE.search(_prose_only(cleaned)):
+        cleaned = f"{cleaned}\nCOMPLETE"
+
+    return cleaned

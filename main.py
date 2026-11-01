@@ -51,7 +51,7 @@ def cmd_eval(args):
 
 def cmd_query(args):
     from agent.agent import SamaritanAgent
-    from output.filter import filter_output
+    from output.filter import finalize_output
     from ui.tui import SamaritanTUI
 
     question = args.question
@@ -63,13 +63,13 @@ def cmd_query(args):
     agent = SamaritanAgent()
     tui = SamaritanTUI()
     resp = agent.process(question)
-    filtered = filter_output(resp)
+    filtered = finalize_output(resp)
     tui.respond(filtered)
 
 
 def cmd_ask(args):
     from serving.ollama_client import generate
-    from output.filter import filter_output
+    from output.filter import finalize_output
     from ui.tui import SamaritanTUI
 
     question = args.question
@@ -80,14 +80,14 @@ def cmd_ask(args):
 
     tui = SamaritanTUI()
     resp = generate([{"role": "user", "content": question}], model="samaritan")
-    filtered = filter_output(resp)
+    filtered = finalize_output(resp)
     tui.respond(filtered)
 
 
 def main():
     if len(sys.argv) == 1:
         from agent.agent import SamaritanAgent
-        from output.filter import filter_output
+        from output.filter import finalize_output
         from ui.tui import SamaritanTUI
 
         tui = SamaritanTUI()
@@ -104,7 +104,7 @@ def main():
                     tui.cursor_show()
                     break
                 resp = agent.process(user_input)
-                filtered = filter_output(resp)
+                filtered = finalize_output(resp)
                 tui.respond(filtered)
                 sys.stdout.flush()
             except EOFError:
@@ -118,7 +118,7 @@ def main():
                 break
             except Exception as e:
                 err = f"ANOMALY DETECTED\nERROR: {e}\nCOMPLETE"
-                filtered_err = filter_output(err)
+                filtered_err = finalize_output(err)
                 tui.respond(filtered_err)
                 sys.stdout.flush()
         return

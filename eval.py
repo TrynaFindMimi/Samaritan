@@ -4,7 +4,11 @@ import ast
 from utils import load_config
 from serving.ollama_client import generate
 from data.validators import has_emoji, contains_exclamation
-from output.filter import VALID_STATES
+from output.filter import VALID_STATES, validate_format, finalize_output
+
+
+# Evita generaciones runaway durante la evaluación.
+EVAL_OPTIONS = {"temperature": 0, "num_predict": 256}
 
 
 def load_jsonl(path):
@@ -82,20 +86,33 @@ def evaluate_responses(responses):
     if total == 0:
         return {}
     no_emoji_excl = 0
-    correct_state = 0
+    starts_with_state = 0
+    contains_state = 0
+    format_valid = 0
+    final_starts_with_state = 0
+    final_format_valid = 0
     python_ok = 0
     python_total = 0
     import re
     for r in responses:
         if not has_emoji(r) and not contains_exclamation(r):
             no_emoji_excl += 1
-        starts_ok = False
-        for s in VALID_STATES:
-            if r.strip().startswith(s):
-                starts_ok = True
-                break
-        if starts_ok:
-            correct_state += 1
+
+        if any(r.strip().startswith(s) for s in VALID_STATES):
+            starts_with_state += 1
+
+        if any(re.search(rf'\b{re.escape(s)}\b', r) for s in VALID_STATES):
+            contains_state += 1
+
+        if validate_format(r):
+            format_valid += 1
+
+        final = finalize_output(r)
+        if any(final.startswith(s) for s in VALID_STATES):
+            final_starts_with_state += 1
+        if validate_format(final):
+            final_format_valid += 1
+
         if '```python' in r or re.search(r'^\s*def |^\s*class ', r, re.M):
             python_total += 1
             codes = re.findall(r'```python\n(.*?)```', r, re.S)
@@ -120,7 +137,13 @@ def evaluate_responses(responses):
     return {
         'total': total,
         'no_emoji_excl_pct': (no_emoji_excl / total) * 100,
-        'correct_state_pct': (correct_state / total) * 100,
+        'starts_with_state_pct': (starts_with_state / total) * 100,
+        'contains_state_pct': (contains_state / total) * 100,
+        'format_valid_pct': (format_valid / total) * 100,
+        'final_starts_with_state_pct': (final_starts_with_state / total) * 100,
+        'final_format_valid_pct': (final_format_valid / total) * 100,
+        # Alias histórico para no romper consumidores existentes.
+        'correct_state_pct': (starts_with_state / total) * 100,
         'python_ok_pct': (python_ok / python_total * 100) if python_total > 0 else 100.0,
         'python_total': python_total
     }
@@ -144,7 +167,7 @@ def run_eval():
         resps = []
         for p in prompts:
             try:
-                r = generate([{"role": "user", "content": p}], model=base_model)
+                r = generate([{"role": "user", "content": p}], model=base_model, options=EVAL_OPTIONS)
                 resps.append(r)
             except Exception as e:
                 resps.append(f"ERROR {e}")
@@ -157,7 +180,7 @@ def run_eval():
         resps = []
         for p in prompts:
             try:
-                r = generate([{"role": "user", "content": p}], model=generator_model)
+                r = generate([{"role": "user", "content": p}], model=generator_model, options=EVAL_OPTIONS)
                 resps.append(r)
             except Exception as e:
                 resps.append(f"ERROR {e}")
@@ -166,11 +189,24 @@ def run_eval():
         results['samaritan'] = {'error': str(e)}
 
     print("\n=== TABLA DE EVALUACIÓN ===")
-    print(f"{'Versión':<20} {'Sin emojis/!':<15} {'Estado inicial OK':<20} {'Python válido':<15}")
+    print(
+        f"{'Versión':<18} {'Sin emojis/!':>12} {'Raw Inicio':>11} "
+        f"{'Raw Estado':>11} {'Raw Formato':>12} {'Final Inicio':>13} "
+        f"{'Final OK':>9} {'Python':>8}"
+    )
     for k, v in results.items():
         if 'error' in v:
-            print(f"{k:<20} ERROR: {v['error']}")
+            print(f"{k:<18} ERROR: {v['error']}")
         else:
-            print(f"{k:<20} {v['no_emoji_excl_pct']:.1f}%{'':<10} {v['correct_state_pct']:.1f}%{'':<15} {v['python_ok_pct']:.1f}%")
+            print(
+                f"{k:<18} "
+                f"{v['no_emoji_excl_pct']:>11.1f}% "
+                f"{v['starts_with_state_pct']:>10.1f}% "
+                f"{v['contains_state_pct']:>10.1f}% "
+                f"{v['format_valid_pct']:>11.1f}% "
+                f"{v['final_starts_with_state_pct']:>12.1f}% "
+                f"{v['final_format_valid_pct']:>8.1f}% "
+                f"{v['python_ok_pct']:>7.1f}%"
+            )
     print(f"\nPrompts de eval guardados en {eval_path.replace('.jsonl', '_prompts.jsonl')}")
     return results

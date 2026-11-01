@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from agent.agent import SamaritanAgent
-from output.filter import filter_output
+from output.filter import finalize_output
 
 def main():
     print("Hola soy samaritan")
@@ -13,7 +13,7 @@ def main():
             if user_input.strip().lower() in ['exit', 'salir', 'quit']:
                 break
             resp = agent.process(user_input)
-            filtered = filter_output(resp)
+            filtered = finalize_output(resp)
             print(filtered)
             print()
         except EOFError:

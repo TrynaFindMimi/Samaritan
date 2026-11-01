@@ -1,4 +1,5 @@
 import os
+import sys
 import json
 import inspect
 from pathlib import Path
@@ -160,7 +161,12 @@ def merge_adapter(config=None):
     merged_path = paths_cfg['merged_model']
 
     tokenizer = AutoTokenizer.from_pretrained(base_model, trust_remote_code=True)
-    model = AutoModelForCausalLM.from_pretrained(base_model, trust_remote_code=True, torch_dtype=torch.float32)
+    model = AutoModelForCausalLM.from_pretrained(
+        base_model,
+        trust_remote_code=True,
+        torch_dtype=torch.float32,
+        low_cpu_mem_usage=True,
+    )
     model = PeftModel.from_pretrained(model, lora_path)
     model = model.merge_and_unload()
     os.makedirs(merged_path, exist_ok=True)
@@ -184,6 +190,7 @@ def export_gguf(config=None, model_path: Optional[str] = None):
             os.path.expanduser('~/llama.cpp/convert_hf_to_gguf.py'),
             '/usr/local/bin/convert_hf_to_gguf.py',
             'llama.cpp/convert_hf_to_gguf.py',
+            os.path.join(os.path.dirname(__file__), '..', '..', 'llama.cpp', 'convert_hf_to_gguf.py'),
         ]
         convert_script = None
         for c in candidates:
@@ -191,15 +198,36 @@ def export_gguf(config=None, model_path: Optional[str] = None):
                 convert_script = c
                 break
         if convert_script:
-            out_file = os.path.join(gguf_out, 'samaritan-q4_K_M.gguf')
-            cmd = ['python', convert_script, model_path, '--outfile', out_file, '--outtype', 'q4_K_M']
+            out_f16 = os.path.join(gguf_out, 'samaritan-f16.gguf')
+            cmd = [sys.executable, convert_script, model_path, '--outfile', out_f16, '--outtype', 'f16']
             print('Ejecutando:', ' '.join(cmd))
-            subprocess.run(cmd, check=False)
-            print(f"GGUF exportado a {out_file} (si llama.cpp está instalado)")
-            return out_file
+            subprocess.run(cmd, check=True)
+
+            quantize_candidates = [
+                os.path.expanduser('~/llama.cpp/build/bin/llama-quantize'),
+                '/usr/local/bin/llama-quantize',
+                'llama.cpp/build/bin/llama-quantize',
+                os.path.join(os.path.dirname(__file__), '..', '..', 'llama.cpp', 'build', 'bin', 'llama-quantize'),
+            ]
+            quantize = None
+            for c in quantize_candidates:
+                if os.path.exists(c):
+                    quantize = c
+                    break
+
+            if quantize:
+                out_q4 = os.path.join(gguf_out, 'samaritan-q4_K_M.gguf')
+                qcmd = [quantize, out_f16, out_q4, 'Q4_K_M']
+                print('Ejecutando:', ' '.join(qcmd))
+                subprocess.run(qcmd, check=True)
+                print(f"GGUF Q4_K_M exportado a {out_q4}")
+                return out_q4
+
+            print(f"GGUF F16 exportado a {out_f16}")
+            return out_f16
     except Exception as e:
         print(f"GGUF export falló: {e}")
-    print("No se encontró convert_hf_to_gguf.py de llama.cpp. Instala llama.cpp para exportar GGUF Q4_K_M.")
+    print("No se encontró convert_hf_to_gguf.py de llama.cpp. Instala llama.cpp para exportar GGUF.")
     return gguf_out
 
 

@@ -2,26 +2,40 @@
 
 ## Métricas evaluadas
 
-El script `eval.py` mide:
-1. **Porcentaje de respuestas sin emojis ni `!`** - Debe ser 100%
-2. **Porcentaje con estado inicial correcto** - Debe empezar con `ANALYZING`, `SCANNING`, `EXECUTING`, `MONITORING`, `STANDBY`, `ACCESS GRANTED`, `ACCESS DENIED`, `ANOMALY DETECTED`, `DATOS INSUFICIENTES` o `COMPLETE`
-3. **Porcentaje de código Python que pasa `ast.parse`** - Solo se evalúa si hay código Python
+El script `eval.py` mide dos niveles: **raw** (lo que genera el modelo) y **final** (lo que recibe el usuario después de `finalize_output()`).
+
+1. **Sin emojis ni `!`**: respuestas limpias de estilo.
+2. **Raw Inicio (`starts_with_state_pct`)**: la respuesta cruda empieza exactamente con un estado válido.
+3. **Raw Estado (`contains_state_pct`)**: la respuesta cruda menciona un estado válido en cualquier parte.
+4. **Raw Formato (`format_valid_pct`)**: la respuesta cruda pasa `validate_format()` (inicio con estado + cierre con `COMPLETE`).
+5. **Final Inicio (`final_starts_with_state_pct`)**: la respuesta final empieza con estado.
+6. **Final OK (`final_format_valid_pct`)**: la respuesta final pasa `validate_format()`.
+7. **Python válido**: porcentaje de código Python que pasa `ast.parse`. Si no hay código Python, se reporta `100.0%` por defecto.
+
+La evaluación usa `temperature=0` y `num_predict=256` para evitar generaciones runaway.
 
 ## Resultados obtenidos
 
-Última ejecución con `qwen2.5:0.5b` local:
+Última ejecución con `qwen2.5:0.5b` y `samaritan` desplegado desde GGUF F16:
 
 ```
 === TABLA DE EVALUACIÓN ===
-Versión              Sin emojis/!    Estado inicial OK    Python válido  
-base                 83.3%           0.0%                100.0%
-samaritan            90.0%           0.0%                100.0%
+Versión            Sin emojis/!  Raw Inicio  Raw Estado  Raw Formato  Final Inicio  Final OK   Python
+base                      83.3%        0.0%        0.0%         0.0%        100.0%    100.0%   100.0%
+samaritan                100.0%       20.0%       60.0%        10.0%        100.0%    100.0%   100.0%
 ```
 
-- **Modelo base:** `qwen2.5:0.5b` (Ollama, configurado en `ollama.base_model`)
-- **Samaritan:** `qwen2.5:0.5b` + system prompt. El adaptador LoRA no está desplegado porque Ollama 0.40.12 no soporta `ADAPTER`; ver `docs/DEPLOYMENT.md`.
+- **Modelo base:** `qwen2.5:0.5b` (Ollama, configurado en `ollama.base_model`).
+- **Samaritan:** modelo base + adaptador LoRA fusionado, desplegado como `samaritan-f16.gguf`; ver `docs/DEPLOYMENT.md`.
 
-El **estado inicial correcto sigue en 0%**: el modelo 0.5B no está siguiendo el formato `ANALYZING ... COMPLETE`. No es un fallo del evaluador; es una limitación del modelo/prompt. Para mejorarlo hace falta ajustar el prompt o desplegar el adaptador mediante GGUF.
+### Cómo interpretar los números
+
+- **Raw Inicio = 20%**: el modelo empieza con un estado válido en 1 de cada 5 respuestas.
+- **Raw Estado = 60%**: el modelo menciona estados en más de la mitad de las respuestas, aunque no al inicio.
+- **Raw Formato = 10%**: solo algunas respuestas crudas cumplen inicio + `COMPLETE`.
+- **Final Inicio = 100%** y **Final OK = 100%**: `finalize_output()` garantiza el contrato de salida para el usuario. Si falta el estado inicial, lo añade; si falta `COMPLETE`, lo agrega.
+- **Python = 100%** no mide calidad si no hay código; es el valor por defecto.
+- La diferencia entre raw y final es intencional: raw mide al modelo; final mide el producto.
 
 ## Prompts de evaluación
 
@@ -31,5 +45,6 @@ Los 30 prompts de evaluación se guardan en `data/eval_prompts.jsonl` y están d
 
 ```bash
 cd /Users/leonardocarrillo/AIProj/Samaritan
-python3 main.py eval
+source .venv/bin/activate
+python main.py eval
 ```

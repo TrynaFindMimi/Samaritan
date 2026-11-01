@@ -62,7 +62,7 @@ Este documento describe qué hace cada archivo y cómo se relaciona con las capa
 
 | Archivo | Descripción |
 |---|---|
-| `filter.py` | Filtro obligatorio. `filter_output()` elimina emojis, reemplaza `!` por `.`, elimina `¡`. `validate_format()` comprueba estado inicial en mayúsculas y presencia de `COMPLETE`. |
+| `filter.py` | Filtro obligatorio. `filter_output()` limpia emojis/`!`/`¡` sin tocar código. `validate_format()` comprueba estado inicial y `COMPLETE`. `finalize_output()` garantiza el contrato añadiendo estado y `COMPLETE` si faltan. |
 
 ## `ui/`
 
@@ -79,6 +79,7 @@ Este documento describe qué hace cada archivo y cómo se relaciona con las capa
 | `test_output_filter.py` | Tests para el filtro de salida obligatorio. |
 | `test_agent.py` | Tests para comandos prohibidos y acciones destructivas. |
 | `test_utils.py` | Tests para la lógica de RAM en `utils.py`. |
+| `test_eval.py` | Tests para las métricas de `evaluate_responses()`. |
 
 ## `docs/`
 
@@ -89,5 +90,5 @@ Este documento describe qué hace cada archivo y cómo se relaciona con las capa
 | `EVALUATION.md` | Guía de evaluación. |
 | `QUICKSTART.md` | Guía rápida de inicio. |
 | `FILEMAP.md` | Este documento - mapa detallado de archivos. |
-| `DEPLOYMENT.md` | Estado del despliegue del adaptador y ruta GGUF pendiente. |
+| `DEPLOYMENT.md` | Estado del despliegue del adaptador vía GGUF F16. |
 | `graphs/` | Diagramas/representaciones gráficas (si existen). |

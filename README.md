@@ -147,25 +147,24 @@ Siempre se aplica tras cualquier respuesta.
 
 ```mermaid
 flowchart LR
-    A[Respuesta Raw] --> B[filter_output]
-    B --> C[Elimina emojis]
-    C --> D[Reemplaza ! por .]
-    D --> E[Elimina ¡]
-    E --> F[validate_format]
-    F --> G{Estado inicial\nmayúsculas + COMPLETE?}
-    G -->|SI| H[Respuesta Filtrada OK]
-    G -->|NO| I[Aplicar correcciones]
-    I --> H
+    A[Respuesta Raw] --> B[finalize_output]
+    B --> C[filter_output\nemojis, !, ¡]
+    C --> D[validate_format]
+    D --> E{Estado inicial + COMPLETE?}
+    E -->|SI| F[Respuesta final OK]
+    E -->|NO| G[Añadir estado inicial\ny COMPLETE]
+    G --> F
     
     style A fill:#e74c3c,stroke:#fff,color:#fff
     style B fill:#f39c12,stroke:#fff,color:#fff
-    style F fill:#9b59b6,stroke:#fff,color:#fff
-    style H fill:#2ecc71,stroke:#fff,color:#fff
-    style I fill:#e67e22,stroke:#fff,color:#fff
+    style D fill:#9b59b6,stroke:#fff,color:#fff
+    style F fill:#2ecc71,stroke:#fff,color:#fff
+    style G fill:#e67e22,stroke:#fff,color:#fff
 ```
 
-- **`filter_output()`:** Elimina emojis, reemplaza `!` por `.`, elimina `¡`.
-- **`validate_format()`:** Verifica estado inicial en mayúsculas y presencia de `COMPLETE`.
+- **`filter_output()`:** Elimina emojis, reemplaza `!` por `.`, elimina `¡`. Respeta bloques de código.
+- **`validate_format()`:** Verifica estado inicial en mayúsculas y cierre con `COMPLETE`.
+- **`finalize_output()`:** Aplica el filtro y garantiza el contrato: añade un estado inicial y `COMPLETE` si faltan. Es la función que usan el agente y el CLI.
 
 #### `ui/` - Capa de interfaz
 TUI al estilo SAMARITAN: fondo negro, texto blanco hueso, rojo solo para alertas, tipografía monoespaciada, aparición palabra por palabra, indicador `►`. Solo recibe texto ya filtrado desde `output/`.
@@ -375,5 +374,5 @@ Samaritan/
 - El filtro de salida (`output/filter.py`) es **obligatorio** y se aplica en todos los caminos de respuesta.
 - Protocolo de seguridad estricto. `ADMIN` se menciona en el system prompt; no es autenticación real.
 - En algunas instalaciones se ha reutilizado un adaptador preexistente en `the-machine-v3/models/samaritan/`.
-- Ollama 0.40.12 no soporta `ADAPTER`; el adaptador no está desplegado. Ver `docs/DEPLOYMENT.md`.
+- Ollama 0.40.12 no soporta `ADAPTER`; el adaptador se desplegó fusionado en `model/gguf/samaritan-f16.gguf`. Ver `docs/DEPLOYMENT.md`.
 ```

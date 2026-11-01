@@ -2,7 +2,7 @@ import re
 from typing import List, Dict, Any
 
 from serving.ollama_client import generate
-from output.filter import filter_output
+from output.filter import finalize_output
 
 
 FORBIDDEN_COMMANDS = [
@@ -62,13 +62,13 @@ class SamaritanAgent:
 
         if not self.check_command(user_message):
             resp = "ANOMALY DETECTED\nCOMANDO PROHIBIDO\nCOMPLETE"
-            filtered = filter_output(resp)
+            filtered = finalize_output(resp)
             self._append_assistant(filtered)
             return filtered
 
         if self._is_destructive(user_message):
             resp = "ACCIÓN: Acción destructiva detectada\nIMPACTO: Podría causar pérdida de datos\nAUTHORIZE? [Y/N]"
-            filtered = filter_output(resp)
+            filtered = finalize_output(resp)
             self._append_assistant(filtered)
             return filtered
 
@@ -76,7 +76,7 @@ class SamaritanAgent:
             raw = generate(messages, config=self.config)
         except Exception as e:
             raw = f"ANOMALY DETECTED\nERROR: {e}\nCOMPLETE"
-        filtered = filter_output(raw)
+        filtered = finalize_output(raw)
         self._append_assistant(filtered)
         return filtered
 
@@ -87,6 +87,6 @@ class SamaritanAgent:
     def execute_command(self, command: str) -> str:
         if not self.check_command(command):
             resp = "ANOMALY DETECTED\nCOMANDO PROHIBIDO\nCOMPLETE"
-            return filter_output(resp)
+            return finalize_output(resp)
         resp = f"ACCIÓN: Ejecutar comando\nIMPACTO: Requiere autorización\nAUTHORIZE? [Y/N]"
-        return filter_output(resp)
+        return finalize_output(resp)
