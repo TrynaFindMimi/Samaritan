@@ -32,6 +32,7 @@ env/
 *.safetensors
 model/outputs/
 model/lora_adapter/
+model/lora_adapter_backup_*/
 model/merged/
 model/gguf/
 

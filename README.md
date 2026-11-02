@@ -375,4 +375,5 @@ Samaritan/
 - Protocolo de seguridad estricto. `ADMIN` se menciona en el system prompt; no es autenticación real.
 - Se conserva un adaptador preexistente como respaldo; la versión actual de `model/lora_adapter` fue reentrenada con SFT y DPO.
 - Ollama 0.40.12 no soporta `ADAPTER`; el adaptador se desplegó fusionado en `model/gguf/samaritan-f16.gguf`. Ver `docs/DEPLOYMENT.md`.
+- `scripts/train_format.py` reproduce la corrida centrada en formato; `scripts/build_gguf.sh` regenera el GGUF y `scripts/smoke.sh` verifica el despliegue.
 ```

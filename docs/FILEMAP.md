@@ -15,6 +15,14 @@ Este documento describe qué hace cada archivo y cómo se relaciona con las capa
 | `README.md` | Documentación principal del proyecto. |
 | `.gitignore` | Archivos y directorios ignorados por git. |
 
+## `scripts/`
+
+| Archivo | Descripción |
+|---|---|
+| `train_format.py` | Reproduce la corrida SFT/DPO centrada en formato con `train_format.jsonl`, `dpo_format.jsonl`, 5 épocas de SFT y backup del adaptador. |
+| `build_gguf.sh` | Fusiona el adaptador, exporta el GGUF F16 y recrea el modelo en Ollama. |
+| `smoke.sh` | Ejecuta pytest, verifica `samaritan`/F16 y prueba la salida final. |
+
 ## `agent/`
 
 | Archivo | Descripción |
@@ -47,6 +55,7 @@ Este documento describe qué hace cada archivo y cómo se relaciona con las capa
 | Archivo | Descripción |
 |---|---|
 | `train.py` | Entrenamiento LoRA SFT (`train_sft`), DPO (`train_dpo`), fusión de adaptador (`merge_adapter`) y exportación GGUF (`export_gguf`). Usa `transformers`, `peft`, `trl`, etc. |
+| `CHECKPOINTS.md` | Nota sobre los checkpoints históricos y su relación con las corridas actuales. |
 | `outputs/` | Checkpoints y salidas de entrenamiento (ignorado en git). |
 | `lora_adapter/` | Adaptador LoRA guardado (ignorado en git). |
 | `merged/` | Modelo fusionado (ignorado en git). |

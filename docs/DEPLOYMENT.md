@@ -19,6 +19,19 @@ Tamaño:       ~994 MB
 
 El adaptador LoRA **sí está incluido**: se fusionó con el modelo base y se convirtió a GGUF.
 
+**Importante:** `model/gguf/` y `model/merged/` están ignorados por Git. Los valores
+F16, 494.03M y ~994 MB corresponden a una verificación local en el entorno de
+desarrollo; no están garantizados en un clon limpio. Para regenerarlos:
+
+```bash
+source .venv/bin/activate
+bash scripts/build_gguf.sh
+bash scripts/smoke.sh
+```
+
+`scripts/smoke.sh` verifica que `samaritan` exista, que sea F16 y que la salida
+final cumpla el contrato.
+
 ## Por qué no se usa `ADAPTER`
 
 Ollama 0.40.12 ya no acepta la instrucción `ADAPTER`:

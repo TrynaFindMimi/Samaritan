@@ -11,6 +11,32 @@ En esta sesión se hicieron dos corridas:
 - **Evaluación final:** Samaritan obtiene 73,3 % de inicio raw, 96,7 % de presencia de estado y 73,3 % de formato raw completo. La salida final alcanza 100 % de inicio y formato gracias a `finalize_output()`.
 - **Resultado desplegado:** el adaptador final se fusionó con Qwen2.5-0.5B-Instruct y se desplegó como `model/gguf/samaritan-f16.gguf`. Ollama 0.40.12 no soporta `ADAPTER`, así que se usó la ruta de fusión + GGUF. Ver `docs/DEPLOYMENT.md`.
 
+## Reproducibilidad
+
+El CLI por defecto (`python main.py train-sft` y `python main.py train-dpo`)
+usa `data/train.jsonl` y `data/dpo.jsonl` con 1 época, tal como indica
+`config.yaml`. Por tanto, **no reproduce** la segunda corrida centrada en
+formato.
+
+Para reproducir la corrida de formato:
+
+```bash
+source .venv/bin/activate
+python scripts/train_format.py
+python main.py create-model
+```
+
+El script `scripts/train_format.py`:
+
+- usa `data/train_format.jsonl` y `data/dpo_format.jsonl`,
+- configura 5 épocas de SFT y 1 de DPO,
+- hace backup del adaptador actual,
+- ejecuta SFT, DPO, `merge_adapter()` y `export_gguf()`.
+
+El adaptador final versionado en `model/lora_adapter/` usa `r=16`,
+`alpha=32` y siete módulos. Los checkpoints `checkpoint-4..40` son de una
+corrida anterior; ver `model/CHECKPOINTS.md`.
+
 ## Configuración SFT (config.yaml)
 
 ```yaml
