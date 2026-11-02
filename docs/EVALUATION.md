@@ -22,20 +22,21 @@ La evaluación usa `temperature=0` y `num_predict=256` para evitar generaciones 
 === TABLA DE EVALUACIÓN ===
 Versión            Sin emojis/!  Raw Inicio  Raw Estado  Raw Formato  Final Inicio  Final OK   Python
 base                      83.3%        0.0%        0.0%         0.0%        100.0%    100.0%   100.0%
-samaritan                100.0%       20.0%       60.0%        10.0%        100.0%    100.0%   100.0%
+samaritan                100.0%       73.3%       96.7%        73.3%        100.0%    100.0%   100.0%
 ```
 
 - **Modelo base:** `qwen2.5:0.5b` (Ollama, configurado en `ollama.base_model`).
-- **Samaritan:** modelo base + adaptador LoRA fusionado, desplegado como `samaritan-f16.gguf`; ver `docs/DEPLOYMENT.md`.
+- **Samaritan:** modelo base + adaptador LoRA entrenado con SFT y DPO sobre un conjunto centrado en formato, fusionado y desplegado como `samaritan-f16.gguf`; ver `docs/DEPLOYMENT.md`.
 
 ### Cómo interpretar los números
 
-- **Raw Inicio = 20%**: el modelo empieza con un estado válido en 1 de cada 5 respuestas.
-- **Raw Estado = 60%**: el modelo menciona estados en más de la mitad de las respuestas, aunque no al inicio.
-- **Raw Formato = 10%**: solo algunas respuestas crudas cumplen inicio + `COMPLETE`.
+- **Raw Inicio = 73,3%**: el modelo empieza con un estado válido en 22 de 30 respuestas.
+- **Raw Estado = 96,7%**: el modelo menciona un estado válido en 29 de 30 respuestas.
+- **Raw Formato = 73,3%**: 22 de 30 respuestas crudas cumplen inicio con estado y cierre `COMPLETE`.
 - **Final Inicio = 100%** y **Final OK = 100%**: `finalize_output()` garantiza el contrato de salida para el usuario. Si falta el estado inicial, lo añade; si falta `COMPLETE`, lo agrega.
 - **Python = 100%** no mide calidad si no hay código; es el valor por defecto.
 - La diferencia entre raw y final es intencional: raw mide al modelo; final mide el producto.
+- La mejora raw respecto de la corrida anterior (20 % / 56,7 % / 10 %) es consistente con el cambio de datos: el nuevo conjunto SFT/DPO incluye explícitamente el contrato de formato.
 
 ## Prompts de evaluación
 

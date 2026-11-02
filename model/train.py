@@ -108,14 +108,26 @@ def train_sft(config=None):
     output_dir = paths_cfg['output_dir']
     os.makedirs(output_dir, exist_ok=True)
 
+    # Transformers moderno eliminó warmup_ratio; se calcula en pasos.
+    steps_per_epoch = max(
+        1,
+        len(tokenized) // (
+            train_cfg['per_device_train_batch_size'] * train_cfg['gradient_accumulation_steps']
+        ),
+    )
+    total_steps = max(1, steps_per_epoch * train_cfg['num_train_epochs'])
+    warmup_steps = train_cfg.get('warmup_steps')
+    if warmup_steps is None:
+        warmup_steps = max(1, int(total_steps * train_cfg.get('warmup_ratio', 0.03)))
+
     args = TrainingArguments(
         output_dir=output_dir,
         per_device_train_batch_size=train_cfg['per_device_train_batch_size'],
         gradient_accumulation_steps=train_cfg['gradient_accumulation_steps'],
         gradient_checkpointing=train_cfg.get('gradient_checkpointing', True),
         num_train_epochs=train_cfg['num_train_epochs'],
-        learning_rate=train_cfg['learning_rate'],
-        warmup_ratio=train_cfg.get('warmup_ratio', 0.03),
+        learning_rate=float(train_cfg['learning_rate']),
+        warmup_steps=warmup_steps,
         logging_steps=train_cfg.get('logging_steps', 10),
         save_steps=train_cfg.get('save_steps', 100),
         fp16=False,
@@ -123,7 +135,6 @@ def train_sft(config=None):
         use_cpu=True,
         dataloader_num_workers=0,
         report_to=[],
-        save_safetensors=True,
         seed=seed,
     )
 
@@ -284,12 +295,12 @@ def train_dpo(config=None):
     dataset = Dataset.from_list(data)
 
     dpo_config = DPOConfig(
-        beta=train_cfg.get('beta', 0.1),
+        beta=float(train_cfg.get('beta', 0.1)),
         num_train_epochs=train_cfg.get('num_train_epochs', 1),
         per_device_train_batch_size=train_cfg.get('per_device_train_batch_size', 1),
         gradient_accumulation_steps=train_cfg.get('gradient_accumulation_steps', 8),
         gradient_checkpointing=train_cfg.get('gradient_checkpointing', True),
-        learning_rate=train_cfg.get('learning_rate', 5e-7),
+        learning_rate=float(train_cfg.get('learning_rate', 5e-7)),
         fp16=False,
         bf16=False,
         use_cpu=True,

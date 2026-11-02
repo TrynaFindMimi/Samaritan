@@ -33,6 +33,8 @@ Este documento describe qué hace cada archivo y cómo se relaciona con las capa
 | `eval.jsonl` | Dataset de evaluación SFT generado (ignorado en git). |
 | `candidates.jsonl` | Candidatos generados por juez automático (ignorado en git). |
 | `dpo.jsonl` | Pares DPO generados (ignorado en git). |
+| `train_format.jsonl` | Variante de `train.jsonl` con respuestas `ANALYZING ... COMPLETE` para el ajuste centrado en formato. |
+| `dpo_format.jsonl` | Pares DPO con `chosen` formateado y `rejected` sin formato, usados en el ajuste centrado en formato. |
 
 ## `judge/`
 

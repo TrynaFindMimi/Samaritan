@@ -2,11 +2,14 @@
 
 ## Estado actual
 
-En esta sesión:
-- **SFT:** Se reutilizó el adaptador LoRA preexistente de `the-machine-v3/models/samaritan/` (copiado a `model/lora_adapter/`). El reentrenamiento SFT desde cero fue interrumpido por timeout en CPU.
-- **DPO:** `data/dpo.jsonl` contiene 30 pares de referencia; en esta copia no se añadieron pares generados nuevos. El entrenamiento DPO fue interrumpido por recursos.
-- **Resultado:** El modelo `samaritan` en Ollama usa el adaptador fusionado y convertido a `model/gguf/samaritan-f16.gguf`. Ollama 0.40.12 no soporta `ADAPTER`, así que se usó la ruta de fusión + GGUF. Ver `docs/DEPLOYMENT.md`.
-- **Código DPO:** `train_dpo()` ya carga el adaptador con `is_trainable=True`; queda pendiente ejecutarlo con las dependencias instaladas.
+En esta sesión se hicieron dos corridas:
+
+- **SFT inicial:** Completado sobre `data/train.jsonl` (27 ejemplos): 4 pasos, 24,8 s, loss 3,186. Se guardó un adaptador nuevo con `r=16`, `alpha=32` y 7 módulos.
+- **DPO inicial:** Completado sobre `data/dpo.jsonl` (30 pares de referencia): 4 pasos, 42,6 s, loss 0,6924, `rewards/accuracies=0,7333` y `rewards/margins=0,0014`.
+- **Diagnóstico:** la evaluación raw de esa primera corrida quedó en 20 % de inicio, 56,7 % de presencia de estado y 10 % de formato completo. El entrenamiento terminó, pero los datos no contenían ejemplos explícitos del contrato de formato.
+- **Ajuste centrado en formato:** se construyeron `data/train_format.jsonl` (27 ejemplos) y `data/dpo_format.jsonl` (30 pares), donde cada respuesta empieza con `ANALYZING` y termina con `COMPLETE`. El SFT se repitió con 5 épocas: 20 pasos, 120,8 s, loss 1,967. El DPO se repitió: 4 pasos, 42,1 s, loss 0,6873, `rewards/accuracies=0,7333` y `rewards/margins=0,0111`.
+- **Evaluación final:** Samaritan obtiene 73,3 % de inicio raw, 96,7 % de presencia de estado y 73,3 % de formato raw completo. La salida final alcanza 100 % de inicio y formato gracias a `finalize_output()`.
+- **Resultado desplegado:** el adaptador final se fusionó con Qwen2.5-0.5B-Instruct y se desplegó como `model/gguf/samaritan-f16.gguf`. Ollama 0.40.12 no soporta `ADAPTER`, así que se usó la ruta de fusión + GGUF. Ver `docs/DEPLOYMENT.md`.
 
 ## Configuración SFT (config.yaml)
 

@@ -373,6 +373,6 @@ Samaritan/
 - Solo `serving/` conoce Ollama; el resto de capas son agnósticas al backend.
 - El filtro de salida (`output/filter.py`) es **obligatorio** y se aplica en todos los caminos de respuesta.
 - Protocolo de seguridad estricto. `ADMIN` se menciona en el system prompt; no es autenticación real.
-- En algunas instalaciones se ha reutilizado un adaptador preexistente en `the-machine-v3/models/samaritan/`.
+- Se conserva un adaptador preexistente como respaldo; la versión actual de `model/lora_adapter` fue reentrenada con SFT y DPO.
 - Ollama 0.40.12 no soporta `ADAPTER`; el adaptador se desplegó fusionado en `model/gguf/samaritan-f16.gguf`. Ver `docs/DEPLOYMENT.md`.
 ```

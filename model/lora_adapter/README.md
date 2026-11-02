@@ -1,12 +1,15 @@
 ---
 base_model: Qwen/Qwen2.5-0.5B-Instruct
-library_name: transformers
+library_name: peft
 model_name: samaritan
 tags:
-- generated_from_trainer
-- trl
+- base_model:adapter:Qwen/Qwen2.5-0.5B-Instruct
 - dpo
+- lora
+- transformers
+- trl
 licence: license
+pipeline_tag: text-generation
 ---
 
 # Model Card for samaritan
@@ -35,6 +38,7 @@ This model was trained with DPO, a method introduced in [Direct Preference Optim
 
 ### Framework versions
 
+- PEFT 0.21.2
 - TRL: 1.16.0
 - Transformers: 5.20.1
 - Pytorch: 2.14.1+cpu
