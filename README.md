@@ -12,6 +12,10 @@
 
 Sistema de agente local offline con entrenamiento LoRA (SFT + DPO) sobre `Qwen2.5-0.5B-Instruct`, serving vía Ollama y una interfaz TUI al estilo operativo. Todo corre 100% local sin dependencias de APIs externas.
 
+> **Informe actualizado:** [`docs/INFORME_SAMARITAN.md`](docs/INFORME_SAMARITAN.md)
+>
+> **Figuras SVG:** [`docs/graphs/svg/`](docs/graphs/svg/)
+
 ## Diagrama General
 
 ```mermaid

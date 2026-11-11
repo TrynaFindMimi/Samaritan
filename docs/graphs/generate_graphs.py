@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """
-Script para generar gráficas para la presentación
+LEGACY: script ilustrativo con datos desactualizados.
+
+No usar para el informe. La fuente actual de las figuras es
+`docs/graphs/generate_svgs.py` y los datos de `docs/graphs/data/`.
 """
 import json
 import os

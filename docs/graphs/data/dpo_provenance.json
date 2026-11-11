@@ -1,0 +1,19 @@
+{
+  "generated_at": "2026-11-02",
+  "sft_source": 30,
+  "sft_train": 27,
+  "sft_eval": 3,
+  "eval_prompts": 30,
+  "train_prompts": 27,
+  "prompts_with_candidates": 10,
+  "candidates": 40,
+  "judge_pairs": 0,
+  "reference_pairs": 30,
+  "format_pairs": 30,
+  "dpo_steps": 4,
+  "notes": [
+    "data/dpo.jsonl es identico a data/dataset_dpo.jsonl: 30 pares de referencia.",
+    "data/dpo_format.jsonl usa chosen = ANALYZING + referencia + COMPLETE y rejected = referencia sin formato.",
+    "El juez genero 0 pares que llegaran al artefacto final."
+  ]
+}

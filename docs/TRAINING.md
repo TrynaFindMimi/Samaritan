@@ -8,8 +8,8 @@ En esta sesión se hicieron dos corridas:
 - **DPO inicial:** Completado sobre `data/dpo.jsonl` (30 pares de referencia): 4 pasos, 42,6 s, loss 0,6924, `rewards/accuracies=0,7333` y `rewards/margins=0,0014`.
 - **Diagnóstico:** la evaluación raw de esa primera corrida quedó en 20 % de inicio, 56,7 % de presencia de estado y 10 % de formato completo. El entrenamiento terminó, pero los datos no contenían ejemplos explícitos del contrato de formato.
 - **Ajuste centrado en formato:** se construyeron `data/train_format.jsonl` (27 ejemplos) y `data/dpo_format.jsonl` (30 pares), donde cada respuesta empieza con `ANALYZING` y termina con `COMPLETE`. El SFT se repitió con 5 épocas: 20 pasos, 120,8 s, loss 1,967. El DPO se repitió: 4 pasos, 42,1 s, loss 0,6873, `rewards/accuracies=0,7333` y `rewards/margins=0,0111`.
-- **Evaluación final:** Samaritan obtiene 73,3 % de inicio raw, 96,7 % de presencia de estado y 73,3 % de formato raw completo. La salida final alcanza 100 % de inicio y formato gracias a `finalize_output()`.
-- **Resultado desplegado:** el adaptador final se fusionó con Qwen2.5-0.5B-Instruct y se desplegó como `model/gguf/samaritan-f16.gguf`. Ollama 0.40.12 no soporta `ADAPTER`, así que se usó la ruta de fusión + GGUF. Ver `docs/DEPLOYMENT.md`.
+- **Evaluación final:** En la medición de verificación (30 prompts, `temperature=0`) Samaritan obtiene 100 % de inicio raw, 100 % de presencia de estado y 100 % de formato raw completo. La salida final alcanza 100 % de inicio y formato gracias a `finalize_output()`. La corrida anterior registraba 73,3 %, 96,7 % y 73,3 %; se conserva como referencia histórica.
+- **Resultado desplegado:** el adaptador final se fusionó con Qwen2.5-0.5B-Instruct y se desplegó como `model/gguf/samaritan-f16.gguf`. Ollama 0.40.12 (versión de la sesión de despliegue) no soporta `ADAPTER`, así que se usó la ruta de fusión + GGUF. La verificación actual se hizo con Ollama 0.40.3. Ver `docs/DEPLOYMENT.md`.
 
 ## Reproducibilidad
 
@@ -126,7 +126,7 @@ Puntaje final = `puntaje_juez + ajustes` (acotado 0-10):
 - `rejected` = menor puntaje final
 - Descarta si diferencia < 2 (ambigüo)
 - Descarta si `chosen` < 6
-- Mezcla con 14 pares de referencia de `dataset_dpo.jsonl`
+- Mezcla con los pares de referencia de `dataset_dpo.jsonl`
 
 ### Control de calidad
 - Muestra aleatoria de 20 pares para revisión
@@ -140,7 +140,7 @@ data/dataset_sft.jsonl  (30 ejemplos originales)
 data/dataset_dpo.jsonl  (30 pares de referencia)
 data/train.jsonl        (27 - tras split)
 data/eval.jsonl         (3 - tras split)
-data/candidates.jsonl   (5 prompts con 4 candidatos cada uno)
+data/candidates.jsonl   (10 prompts con 4 candidatos cada uno)
 data/dpo.jsonl          (30 pares construidos)
 data/eval_prompts.jsonl (30 prompts para evaluación)
 ```

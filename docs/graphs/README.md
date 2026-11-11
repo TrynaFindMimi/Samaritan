@@ -1,44 +1,70 @@
-# Gráficas para presentación
+# Gráficas para el informe
 
-Esta carpeta está destinada a guardar gráficas generadas para la presentación.
+Esta carpeta contiene las figuras SVG usadas en `docs/INFORME_SAMARITAN.md`.
 
-## Gráficas sugeridas
+## Figuras generadas
 
-### 1. Evolución de entrenamiento (epoch/loss)
-- **Archivo:** `training_loss.png`
-- **Descripción:** Curva de loss por step/epoch durante SFT y DPO
-- **Fuente:** Logs de `transformers.Trainer` (se guardan en `model/outputs/`)
+| Figura | Archivo | Descripción | Fuente de datos |
+|---|---|---|---|
+| 1 | `svg/fig01_flujo_consulta.svg` | Flujo de una consulta: usuario, agente, serving, Ollama, filtro y TUI | Código del repositorio |
+| 2 | `svg/fig02_flujo_sft_dpo.svg` | Flujo SFT/DPO y artefacto desplegado | `docs/TRAINING.md`, `data/` |
+| 3 | `svg/fig03_evaluacion.svg` | Base vs. base+prompt vs. Samaritan en métricas raw | `data/eval_metrics.json` |
+| 4 | `svg/fig04_pytest.svg` | Resultado de la suite: 29 passed, 0.51 s | Ejecución de pytest |
+| 5 | `svg/fig05_salida_eval.svg` | Tabla de evaluación y límites de Final OK/Python | `data/eval_metrics.json` |
+| 6 | `svg/fig06_tui_interactivo.svg` | TUI en modo interactivo | Salida real del agente |
+| 7 | `svg/fig07_accion_destructiva.svg` | Respuesta ante «borrar todo» | Salida real del agente |
+| 8 | `svg/fig08_comando_prohibido.svg` | Respuesta ante «rm -rf /» | Salida real del agente |
+| 9 | `svg/fig09_trazabilidad.svg` | Base → LoRA → GGUF → Ollama, con prompt no versionado | `config.yaml`, `serving/Modelfile`, `ollama show` |
+| 10 | `svg/fig10_dpo_funnel.svg` | Procedencia del dataset DPO | `data/dpo_provenance.json` |
+| 11 | `svg/fig11_composicion_datos.svg` | Composición de los conjuntos de datos | `data/dpo_provenance.json` |
 
-### 2. Comparativa de evaluación
-- **Archivo:** `evaluation_comparison.png`
-- **Descripción:** Barras comparando modelo base vs SFT vs DPO en las 3 métricas
-- **Datos:** Ver `docs/EVALUATION.md`
+## Cómo regenerar
 
-### 3. Arquitectura de capas
-- **Archivo:** `architecture.png`
-- **Descripción:** Diagrama de las 7 capas con flujo de comunicación
-- **Referencia:** Ver `docs/ARCHITECTURE.md`
-
-### 4. Distribución de puntajes DPO
-- **Archivo:** `dpo_scores.png`
-- **Descripción:** Histograma de puntajes del juez antes/después de reglas
-- **Fuente:** `data/scored_candidates.jsonl` (cuando se genere)
-
-### 5. Métricas por etapa
-- **Archivo:** `pipeline_metrics.png`
-- **Descripción:** Flujo de datos por etapas (prompts → candidatos → pares válidos)
-- **Fuente:** Reporte del juez en `judge/dpo_builder.py`
-
-## Cómo generar
-
-```python
-import matplotlib.pyplot as plt
-# Ejemplo para evaluación
-versions = ['Base', 'SFT', 'DPO']
-no_emoji = [100, 100, 100]
-correct_state = [0, 100, 100]
-python_ok = [100, 100, 100]
-# ... generar gráfica
+```bash
+.venv/bin/python docs/graphs/generate_svgs.py
 ```
 
-Nota: matplotlib puede no estar instalado. Instalar con `pip install matplotlib` si se necesita.
+El script usa solo la biblioteca estándar de Python y escribe los SVG en `docs/graphs/svg/`.
+
+## Datos
+
+- `data/eval_metrics.json`: resultados de las tres variantes de evaluación.
+- `data/dpo_provenance.json`: conteos de SFT, DPO, candidatos y pares generados por el juez.
+
+## Tema y edición
+
+Las figuras usan un tema claro con fondo blanco, adecuado para el informe, Google Docs e impresión:
+
+- Fondo: `#FFFFFF`
+- Texto principal: `#1A1A1A`
+- Texto secundario: `#5F646B`
+- Acento: `#0E7490`
+- Verde: `#1E8449`
+- Rojo: `#C0392B`
+- Ámbar: `#B45309`
+
+Las figuras no usan fuentes externas ni JavaScript. Para cambiar la paleta, editar las constantes iniciales de `generate_svgs.py`.
+
+## Exportación a PNG para Google Docs
+
+Google Docs no admite SVG directamente. Los PNG se generan con:
+
+```bash
+./docs/graphs/export_pngs.sh
+```
+
+o directamente con:
+
+```bash
+mkdir -p docs/graphs/png
+for f in docs/graphs/svg/*.svg; do
+  name=$(basename "$f" .svg)
+  rsvg-convert --width=2400 "$f" -o "docs/graphs/png/$name.png"
+done
+```
+
+Los PNG se guardan en `docs/graphs/png/` con fondo blanco y 2400 px de ancho.
+
+## Nota sobre `generate_graphs.py`
+
+`docs/graphs/generate_graphs.py` es un script legado que contenía datos ilustrativos y valores desactualizados. No se usa para las figuras del informe. La fuente de verdad es `generate_svgs.py` y los JSON de `docs/graphs/data/`.

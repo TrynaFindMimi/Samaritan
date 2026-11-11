@@ -1,0 +1,59 @@
+{
+  "generated_at": "2026-11-02",
+  "prompts": 30,
+  "options": {
+    "temperature": 0,
+    "num_predict": 256
+  },
+  "source": "Evaluacion read-only con data/eval_prompts.jsonl y Ollama 0.40.3",
+  "variants": [
+    {
+      "id": "base",
+      "label": "Base por defecto",
+      "model": "qwen2.5:0.5b",
+      "note": "sin system prompt",
+      "metrics": {
+        "no_emoji": 86.7,
+        "raw_start": 0.0,
+        "raw_state": 0.0,
+        "raw_format": 0.0,
+        "final_start": 100.0,
+        "final_format": 100.0,
+        "python_ok": 100.0,
+        "python_n": 0
+      }
+    },
+    {
+      "id": "base_prompt",
+      "label": "Base + prompt",
+      "model": "qwen2.5:0.5b",
+      "note": "con el system prompt desplegado",
+      "metrics": {
+        "no_emoji": 100.0,
+        "raw_start": 90.0,
+        "raw_state": 90.0,
+        "raw_format": 36.7,
+        "final_start": 100.0,
+        "final_format": 100.0,
+        "python_ok": 100.0,
+        "python_n": 3
+      }
+    },
+    {
+      "id": "samaritan",
+      "label": "Samaritan",
+      "model": "samaritan",
+      "note": "GGUF F16 fusionado",
+      "metrics": {
+        "no_emoji": 100.0,
+        "raw_start": 100.0,
+        "raw_state": 100.0,
+        "raw_format": 100.0,
+        "final_start": 100.0,
+        "final_format": 100.0,
+        "python_ok": 100.0,
+        "python_n": 2
+      }
+    }
+  ]
+}
